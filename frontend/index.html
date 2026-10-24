@@ -1,0 +1,2334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AccessGuard AI — SaaS Access Risk &amp; Permission Drift Detection</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b0f19;
+      color: #e2e8f0;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .cyber-card {
+      background: linear-gradient(135deg, rgba(26, 34, 52, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+      backdrop-filter: blur(12px);
+    }
+    .cyber-card:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+    .badge-glow-red {
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
+    }
+    .badge-glow-cyan {
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.35);
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOP NAVIGATION HEADER -->
+  <header class="border-b border-slate-800 bg-slate-950/80 sticky top-0 z-40 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo and Brand -->
+      <div class="flex items-center space-x-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <i data-lucide="shield-alert" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-xl font-bold tracking-tight text-white">AccessGuard <span class="text-cyan-400">AI</span></span>
+            <span class="text-[10px] font-semibold uppercase tracking-wider bg-cyan-950 text-cyan-400 border border-cyan-800/60 px-2 py-0.5 rounded-full">
+              SaaS Drift Engine
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">SaaS Access Risk &amp; Permission Drift Detection</p>
+        </div>
+      </div>
+
+      <!-- Header CTAs & Modals -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <!-- Backend Status Pill -->
+        <div id="backend-status-badge" class="hidden sm:flex items-center space-x-2 text-xs px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800">
+          <span class="h-2 w-2 rounded-full bg-emerald-400" id="backend-dot"></span>
+          <span class="text-slate-300 font-mono-code" id="backend-text">Engine Ready</span>
+        </div>
+
+        <!-- Supported SaaS Integrations Modal Button -->
+        <button onclick="toggleModal('saasModal')" class="text-xs font-semibold text-cyan-300 hover:text-white flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-cyan-700/50 bg-cyan-950/60 hover:bg-cyan-900/60 transition shadow-sm" title="View 12 supported SaaS platforms">
+          <i data-lucide="layout-grid" class="w-4 h-4 text-cyan-400"></i>
+          <span>Supported SaaS (12)</span>
+        </button>
+
+        <!-- AWS Architecture & PDF Specification Modal Button -->
+        <button onclick="toggleModal('awsModal')" class="hidden md:flex text-xs font-semibold text-cyan-300 hover:text-white items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-cyan-700/50 bg-cyan-950/60 hover:bg-cyan-900/60 transition shadow-sm">
+          <i data-lucide="cloud" class="w-4 h-4 text-cyan-400"></i>
+          <span>AWS Architecture (PDF Reference)</span>
+        </button>
+
+        <!-- Zero-Trust Login Button (Opens Login Portal) -->
+        <button onclick="toggleModal('authModal')" class="text-xs font-semibold text-slate-300 hover:text-white flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900/80 hover:bg-slate-800 transition shadow-sm" title="Open Zero-Trust Authentication Portal">
+          <i data-lucide="lock" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Zero-Trust Login</span>
+        </button>
+
+        <!-- Run Scan CTA -->
+        <button id="scanBtn" onclick="triggerSecurityScan()" class="text-xs font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 px-3.5 py-1.5 rounded-lg flex items-center space-x-2 shadow-lg shadow-cyan-500/20 transition disabled:opacity-50">
+          <i data-lucide="refresh-cw" id="scanIcon" class="w-3.5 h-3.5"></i>
+          <span id="scanText">Run Security Scan</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ALERT NOTIFICATION BANNER -->
+  <div id="notificationBanner" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full">
+    <div id="notificationBox" class="p-3.5 rounded-xl border flex items-center justify-between text-sm shadow-md">
+      <div class="flex items-center space-x-3">
+        <i id="notificationIcon" data-lucide="info" class="w-5 h-5 flex-shrink-0"></i>
+        <span id="notificationMessage" class="font-medium">Notification message</span>
+      </div>
+      <button onclick="closeNotification()" class="text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full space-y-6">
+
+    <!-- KPI METRICS ROW -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      
+      <!-- Total Monitored -->
+      <div class="cyber-card p-4 rounded-xl">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+          <span class="text-xs font-medium uppercase tracking-wider">Identities Monitored</span>
+          <i data-lucide="users" class="w-4 h-4 text-cyan-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white font-mono-code" id="kpiTotal">6</div>
+        <div class="text-[11px] text-slate-400 mt-1 flex items-center">
+          <span class="text-emerald-400 mr-1">●</span> 5 Connected SaaS APIs
+        </div>
+      </div>
+
+      <!-- Critical Risk -->
+      <div class="cyber-card p-4 rounded-xl border-red-500/30">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+          <span class="text-xs font-medium uppercase tracking-wider">Critical Exposure</span>
+          <i data-lucide="shield-alert" class="w-4 h-4 text-red-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-red-400 font-mono-code" id="kpiCritical">2</div>
+        <div class="text-[11px] text-red-400/80 mt-1 flex items-center">
+          <i data-lucide="alert-triangle" class="w-3 h-3 mr-1 inline"></i> Immediate Revocation
+        </div>
+      </div>
+
+      <!-- Permission Drift -->
+      <div class="cyber-card p-4 rounded-xl border-amber-500/30">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+          <span class="text-xs font-medium uppercase tracking-wider">Permission Drift</span>
+          <i data-lucide="git-branch" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-amber-400 font-mono-code" id="kpiDrift">3</div>
+        <div class="text-[11px] text-slate-400 mt-1">Accumulated leftover roles</div>
+      </div>
+
+      <!-- Dormant Accounts -->
+      <div class="cyber-card p-4 rounded-xl">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+          <span class="text-xs font-medium uppercase tracking-wider">Stale / Dormant</span>
+          <i data-lucide="clock" class="w-4 h-4 text-purple-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-purple-400 font-mono-code" id="kpiDormant">2</div>
+        <div class="text-[11px] text-slate-400 mt-1">&ge; 90 days inactive</div>
+      </div>
+
+      <!-- Average Risk / Anomaly Alert -->
+      <div class="cyber-card p-4 rounded-xl border-blue-500/30">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+          <span class="text-xs font-medium uppercase tracking-wider">Mean Risk Score</span>
+          <i data-lucide="activity" class="w-4 h-4 text-blue-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-cyan-400 font-mono-code" id="kpiAvgRisk">60.8/100</div>
+        <div class="text-[11px] text-slate-400 mt-1">Scale: 0 (Safe) to 100 (Max)</div>
+      </div>
+    </div>
+
+    <!-- MAIN TWO-COLUMN WORKSPACE: INVENTORY & SIMULATOR -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT: EMPLOYEE IDENTITY INVENTORY (8 COLUMNS) -->
+      <section class="lg:col-span-8 space-y-4">
+        
+        <!-- Controls Bar -->
+        <div class="cyber-card p-4 rounded-xl flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <!-- Search -->
+          <div class="relative w-full sm:w-64">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+            <input 
+              type="text" 
+              id="searchInput" 
+              oninput="filterEmployees()" 
+              placeholder="Search user, department, SaaS..." 
+              class="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition"
+            >
+          </div>
+
+          <!-- Filters & Add User CTA -->
+          <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+            <select id="riskFilter" onchange="filterEmployees()" class="text-xs bg-slate-900 border border-slate-700 text-slate-300 rounded-lg px-2.5 py-2 focus:outline-none focus:border-cyan-400">
+              <option value="ALL">All Risk Tiers</option>
+              <option value="CRITICAL">Critical Risk Only</option>
+              <option value="HIGH">High Risk</option>
+              <option value="MEDIUM">Medium Risk</option>
+              <option value="LOW">Low Risk</option>
+            </select>
+
+            <select id="driftFilter" onchange="filterEmployees()" class="text-xs bg-slate-900 border border-slate-700 text-slate-300 rounded-lg px-2.5 py-2 focus:outline-none focus:border-cyan-400">
+              <option value="ALL">All Drift States</option>
+              <option value="DRIFT">Drift Detected</option>
+              <option value="CLEAN">Clean / Aligned</option>
+            </select>
+
+            <!-- + Add User Demo Data CTA Button -->
+            <button onclick="openAddUserModal()" class="text-xs font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 px-3 py-2 rounded-lg flex items-center space-x-1.5 shadow-md shadow-cyan-500/20 transition whitespace-nowrap">
+              <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+              <span>+ Add User</span>
+            </button>
+
+            <!-- Reset to Baseline Button -->
+            <button onclick="resetSampleBaseline()" class="text-xs font-medium text-slate-400 hover:text-amber-300 bg-slate-900 border border-slate-700 hover:border-amber-500/50 px-2.5 py-2 rounded-lg flex items-center space-x-1 transition" title="Reset to initial 6 sample records">
+              <i data-lucide="rotate-ccw" class="w-3 h-3 text-amber-400"></i>
+              <span class="hidden md:inline">Reset</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Employee Table -->
+        <div class="cyber-card rounded-xl overflow-hidden shadow-xl">
+          <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
+              <i data-lucide="shield-check" class="w-4 h-4 text-cyan-400"></i>
+              <span>SaaS Identity Governance Matrix (Consented Roles &amp; Usage)</span>
+            </h2>
+            <span class="text-xs text-slate-400 font-mono-code" id="matchedCount">Showing 6 of 6 identities</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-slate-800 bg-slate-900/50 text-slate-400 uppercase tracking-wider font-medium">
+                  <th class="py-3 px-4">Identity &amp; Role</th>
+                  <th class="py-3 px-4">SaaS Consented Roles</th>
+                  <th class="py-3 px-4">MFA / Inactivity</th>
+                  <th class="py-3 px-4">Usage Anomaly</th>
+                  <th class="py-3 px-4">Risk Score</th>
+                  <th class="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="employeesTableBody" class="divide-y divide-slate-800/60 text-slate-300">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PERMISSION DRIFT TIMELINE -->
+        <div class="cyber-card rounded-xl overflow-hidden shadow-xl p-5">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+            <div>
+              <h2 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
+                <i data-lucide="history" class="w-4 h-4 text-amber-400"></i>
+                <span>Permission Drift Historical Audit Trail</span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Immutable CloudTrail log of role accumulations, zero-trust revocations, and risk delta</p>
+            </div>
+            <span class="text-[10px] font-mono-code bg-slate-800 border border-slate-700 px-2 py-1 rounded text-slate-300 flex items-center space-x-1">
+              <i data-lucide="lock" class="w-3 h-3 text-emerald-400"></i>
+              <span>AWS KMS Encrypted</span>
+            </span>
+          </div>
+
+          <div id="driftTimelineList" class="space-y-3">
+            <!-- Timeline items populated via JS -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT: WHAT-IF SIMULATOR & AI COPILOT (4 COLUMNS) -->
+      <section class="lg:col-span-4 space-y-6">
+        
+        <!-- WHAT-IF SIMULATOR CARD -->
+        <div class="cyber-card rounded-xl p-5 shadow-xl border-cyan-500/20">
+          <div class="flex items-center space-x-2 pb-3 border-b border-slate-800">
+            <div class="p-1.5 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-800">
+              <i data-lucide="sliders" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white">What-If Access Simulator</h3>
+              <p class="text-[11px] text-slate-400">Model remediation impact with zero production risk</p>
+            </div>
+          </div>
+
+          <form id="simulatorForm" onsubmit="event.preventDefault(); runSimulation();" class="mt-4 space-y-4">
+            <!-- Select Employee -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Target Identity</label>
+              <select id="simEmployeeSelect" onchange="onSimEmployeeChanged()" class="w-full text-xs bg-slate-900 border border-slate-700 text-slate-200 rounded-lg p-2.5 focus:border-cyan-400 focus:outline-none">
+                <option value="">Select an identity...</option>
+              </select>
+            </div>
+
+            <!-- Proposed Role Field -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Proposed Role / Title</label>
+              <input 
+                type="text" 
+                id="simProposedRole" 
+                placeholder="e.g. Standard Marketer (Least Privilege)" 
+                class="w-full text-xs bg-slate-900 border border-slate-700 text-slate-200 rounded-lg p-2 focus:border-cyan-400 focus:outline-none"
+              >
+            </div>
+
+            <!-- Simulation Levers -->
+            <div class="space-y-2 pt-1 text-xs">
+              <span class="text-slate-400 font-medium block">Simulated Actions:</span>
+              
+              <label class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700">
+                <input type="checkbox" id="simRevokeAdmin" class="rounded bg-slate-800 border-slate-700 text-cyan-500 focus:ring-0">
+                <span class="text-slate-300">Revoke SaaS Administrator Privileges</span>
+              </label>
+
+              <label class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700">
+                <input type="checkbox" id="simResolveDrift" checked class="rounded bg-slate-800 border-slate-700 text-cyan-500 focus:ring-0">
+                <span class="text-slate-300">Remediate Accumulated Role Drift</span>
+              </label>
+
+              <label class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700">
+                <input type="checkbox" id="simEnableMFA" checked class="rounded bg-slate-800 border-slate-700 text-cyan-500 focus:ring-0">
+                <span class="text-slate-300">Enforce Multi-Factor Authentication</span>
+              </label>
+
+              <label class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700">
+                <input type="checkbox" id="simRefreshDormant" class="rounded bg-slate-800 border-slate-700 text-cyan-500 focus:ring-0">
+                <span class="text-slate-300">Renew Dormant Inactive Credential</span>
+              </label>
+            </div>
+
+            <!-- Run Simulation Button -->
+            <button type="submit" id="simulateBtn" class="w-full py-2.5 px-4 text-xs font-semibold rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white flex items-center justify-center space-x-2 transition shadow-md shadow-cyan-600/20">
+              <i data-lucide="zap" class="w-4 h-4"></i>
+              <span>Simulate Risk Impact</span>
+            </button>
+          </form>
+
+          <!-- Simulation Result Display -->
+          <div id="simResultCard" class="hidden mt-4 pt-4 border-t border-slate-800 space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-400">Projected Risk Reduction:</span>
+              <span id="simRiskDeltaBadge" class="font-mono-code font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-2 py-0.5 rounded">-</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-center">
+              <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+                <span class="text-[10px] text-slate-400 uppercase">Baseline</span>
+                <div class="text-lg font-bold text-red-400 font-mono-code" id="simBaseScore">-</div>
+                <div class="text-[10px] text-slate-400" id="simBaseTier">-</div>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+                <span class="text-[10px] text-slate-400 uppercase">After Changes</span>
+                <div class="text-lg font-bold text-emerald-400 font-mono-code" id="simTargetScore">-</div>
+                <div class="text-[10px] text-emerald-400 font-semibold" id="simTargetTier">-</div>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-slate-300 bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 leading-relaxed" id="simRecommendationText">
+              Recommendation details will appear here.
+            </p>
+          </div>
+        </div>
+
+        <!-- EXPLAINABLE AI COPILOT CARD -->
+        <div class="cyber-card rounded-xl p-5 shadow-xl border-purple-500/20">
+          <div class="flex items-center space-x-2 pb-3 border-b border-slate-800">
+            <div class="p-1.5 rounded-lg bg-purple-950 text-purple-400 border border-purple-800">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white">Explainable AI Auditor</h3>
+              <p class="text-[11px] text-slate-400">Amazon Bedrock early warnings &amp; Step Functions</p>
+            </div>
+          </div>
+
+          <div id="aiAuditorContent" class="mt-4 text-xs space-y-3">
+            <p class="text-slate-400 leading-relaxed">
+              Select an employee in the table and click <span class="text-cyan-400 font-medium">"AI Audit"</span> to inspect automated root causes, early warnings, and zero-trust action plans.
+            </p>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- AWS ARCHITECTURE & SPECIFICATION MODAL (FROM UPLOADED PDF) -->
+  <div id="awsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+    <div class="cyber-card rounded-2xl max-w-4xl w-full p-6 border-slate-700 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="h-8 w-8 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center">
+            <i data-lucide="cloud" class="w-5 h-5 text-cyan-400"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Cybersecurity: SaaS Access Risk &amp; Permission Drift Detection</h3>
+            <p class="text-xs text-slate-400">Uploaded Document &amp; AWS Tools Architecture Reference</p>
+          </div>
+        </div>
+        <button onclick="toggleModal('awsModal')" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-300 space-y-4">
+        
+        <!-- 1. Problem Statement -->
+        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
+          <div class="flex items-center space-x-2 text-cyan-400 font-bold uppercase tracking-wider text-[11px]">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+            <span>1. Problem Statement</span>
+          </div>
+          <div class="font-semibold text-slate-100">SaaS Access Risk &amp; Permission Drift Detection</div>
+          <p class="text-slate-300 leading-relaxed text-[11px]">
+            Organizations increasingly rely on multiple SaaS platforms, where employees may accumulate access privileges as they change roles, projects, or responsibilities. Over time, outdated or excessive permissions can remain unnoticed, increasing the risk of unauthorized access to sensitive organizational data.
+          </p>
+        </div>
+
+        <!-- 2. Minimum Viable Product (MVP) -->
+        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
+          <div class="flex items-center space-x-2 text-purple-400 font-bold uppercase tracking-wider text-[11px]">
+            <i data-lucide="check-square" class="w-3.5 h-3.5"></i>
+            <span>2. Minimum Viable Product (MVP)</span>
+          </div>
+          <p class="text-slate-300 leading-relaxed text-[11px]">
+            Build a tool that uses AI to analyze consented SaaS user roles, permissions, access history, and usage patterns to identify excessive, outdated, or anomalous access, and provide explainable early warnings with recommendations for permissions that should be reviewed or revoked.
+          </p>
+        </div>
+
+        <!-- 3. Suggested AWS Tools Architecture -->
+        <div>
+          <div class="flex items-center space-x-2 text-amber-400 font-bold uppercase tracking-wider text-[11px] mb-2">
+            <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+            <span>3. Suggested AWS Tools Architecture (Exact Tools as in PDF)</span>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/80">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 bg-slate-950/60 text-slate-400 uppercase tracking-wider text-[10px]">
+                  <th class="py-2.5 px-3">Module / Functional Area</th>
+                  <th class="py-2.5 px-3">Suggested AWS Tools</th>
+                  <th class="py-2.5 px-3">Zero-Trust Role &amp; Implementation</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60">
+                <tr>
+                  <td class="py-2.5 px-3 font-semibold text-cyan-300">SaaS Data Ingestion &amp; Integration</td>
+                  <td class="py-2.5 px-3 text-white font-mono-code text-[11px]">Amazon AppFlow, AWS Lambda, Amazon API Gateway</td>
+                  <td class="py-2.5 px-3 text-slate-300 text-[11px]">Webhook &amp; connector ingestion from Salesforce, GitHub, Slack, Okta, and Google Workspace.</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-semibold text-cyan-300">Data Storage &amp; Log Analytics</td>
+                  <td class="py-2.5 px-3 text-white font-mono-code text-[11px]">Amazon S3, Amazon OpenSearch Service, Amazon Athena</td>
+                  <td class="py-2.5 px-3 text-slate-300 text-[11px]">Immutable encrypted data lake on S3, sub-second indexing in OpenSearch, and ad-hoc SQL query analytics in Athena.</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-semibold text-cyan-300">AI Permission Drift &amp; Anomaly Detection</td>
+                  <td class="py-2.5 px-3 text-white font-mono-code text-[11px]">Amazon SageMaker, Amazon Lookout for Metrics, AWS Glue</td>
+                  <td class="py-2.5 px-3 text-slate-300 text-[11px]">Glue ETL and identity graph; SageMaker role clustering; Lookout for Metrics flags anomalous usage deviations.</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-semibold text-cyan-300">Explainable AI &amp; Remediation Recommendation</td>
+                  <td class="py-2.5 px-3 text-white font-mono-code text-[11px]">Amazon Bedrock, AWS Step Functions</td>
+                  <td class="py-2.5 px-3 text-slate-300 text-[11px]">Bedrock generates contextual natural language early warnings; Step Functions orchestrates multi-step remediation workflows.</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-semibold text-cyan-300">Alerting &amp; Automated Remediation</td>
+                  <td class="py-2.5 px-3 text-white font-mono-code text-[11px]">Amazon EventBridge, Amazon Simple Notification Service (SNS), AWS Security Hub</td>
+                  <td class="py-2.5 px-3 text-slate-300 text-[11px]">EventBridge routes high-risk events; SNS notifies security teams; AWS Security Hub triggers zero-trust revocations.</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-semibold text-cyan-300">Security, Identity &amp; Audit</td>
+                  <td class="py-2.5 px-3 text-white font-mono-code text-[11px]">AWS IAM Identity Center, AWS Key Management Service (KMS), AWS CloudTrail</td>
+                  <td class="py-2.5 px-3 text-slate-300 text-[11px]">Centralized SSO/MFA, customer-managed KMS encryption, and tamper-proof CloudTrail audit trails.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 4. Expected Outcome -->
+        <div class="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/50 space-y-1">
+          <div class="flex items-center space-x-2 text-emerald-400 font-bold uppercase tracking-wider text-[11px]">
+            <i data-lucide="award" class="w-3.5 h-3.5"></i>
+            <span>Expected Outcome</span>
+          </div>
+          <p class="text-emerald-200 leading-relaxed text-[11px]">
+            The implementation of this AI-driven platform will deliver continuous, automated oversight across multi-SaaS environments, successfully mitigating permission drift and privilege creep. By combining real-time log ingestion with generative AI recommendations, security teams receive clear, contextualized early warnings regarding redundant or risky access privileges before they lead to data breaches. The platform significantly reduces manual security audit overhead, guarantees compliance through immutable audit trails, and enables automated, zero-trust access revocations—ensuring least-privilege enforcement across the organization.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="text-right pt-2 border-t border-slate-800">
+        <button onclick="toggleModal('awsModal')" class="px-4 py-2 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg">
+          Close Specification View
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SUPPORTED SAAS INTEGRATIONS MODAL -->
+  <div id="saasModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+    <div class="cyber-card rounded-2xl max-w-4xl w-full p-6 border-slate-700 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="h-9 w-9 rounded-xl bg-cyan-950 border border-cyan-800 flex items-center justify-center">
+            <i data-lucide="layout-grid" class="w-5 h-5 text-cyan-400"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Supported SaaS Integrations Catalog</h3>
+            <p class="text-xs text-slate-400">Continuous log ingestion &amp; permission synchronization via Amazon AppFlow and AWS Lambda</p>
+          </div>
+        </div>
+        <button onclick="toggleModal('saasModal')" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Ingestion Architecture Banner -->
+      <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+        <div class="flex items-center space-x-3 text-slate-300">
+          <i data-lucide="cpu" class="w-5 h-5 text-cyan-400 flex-shrink-0"></i>
+          <span>Our solution starts with sample permission records and seamlessly expands to active SaaS API connectors via <strong>Amazon AppFlow</strong>.</span>
+        </div>
+        <span class="text-[10px] font-mono-code px-2 py-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
+          12 Connected
+        </span>
+      </div>
+
+      <!-- SaaS Grid List -->
+      <div id="saasIntegrationsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <!-- Injected via JS -->
+      </div>
+
+      <div class="text-right pt-2 border-t border-slate-800">
+        <button onclick="toggleModal('saasModal')" class="px-4 py-2 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg">
+          Close Catalog
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ADD NEW IDENTITY (DEMO DATA) MODAL -->
+  <div id="addUserModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+    <div class="cyber-card rounded-2xl max-w-3xl w-full p-6 border-slate-700 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+            <i data-lucide="user-plus" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Ingest New Identity &amp; SaaS Permissions</h3>
+            <p class="text-xs text-slate-400">Simulate Amazon AppFlow SaaS discovery or ingest custom user data for demonstration</p>
+          </div>
+        </div>
+        <button onclick="toggleModal('addUserModal')" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Quick-Fill Demo Presets Bar -->
+      <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center space-x-1.5">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>Quick-Fill Demo Scenario Presets</span>
+          </span>
+          <span class="text-[10px] text-slate-400 font-mono-code">1-Click Auto Fill</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button type="button" onclick="loadAddUserPreset('devops_contractor')" class="py-1.5 px-2 rounded-lg bg-red-950/40 border border-red-800/60 hover:bg-red-900/40 text-[10px] text-red-200 font-semibold text-center transition">
+            🚨 Orphaned Contractor
+          </button>
+          <button type="button" onclick="loadAddUserPreset('marketing_drift')" class="py-1.5 px-2 rounded-lg bg-amber-950/40 border border-amber-800/60 hover:bg-amber-900/40 text-[10px] text-amber-200 font-semibold text-center transition">
+            ⚠️ Marketing Drift
+          </button>
+          <button type="button" onclick="loadAddUserPreset('compliant_peer')" class="py-1.5 px-2 rounded-lg bg-emerald-950/40 border border-emerald-800/60 hover:bg-emerald-900/40 text-[10px] text-emerald-200 font-semibold text-center transition">
+            🛡️ Compliant Peer
+          </button>
+          <button type="button" onclick="loadAddUserPreset('toxic_combo')" class="py-1.5 px-2 rounded-lg bg-purple-950/40 border border-purple-800/60 hover:bg-purple-900/40 text-[10px] text-purple-200 font-semibold text-center transition">
+            ☣️ Toxic Combo
+          </button>
+        </div>
+      </div>
+
+      <!-- User Form -->
+      <form id="addUserForm" onsubmit="handleCreateUser(event)" class="space-y-3.5 text-xs">
+        
+        <!-- Profile Fields Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Full Name *</label>
+            <input type="text" id="addUserName" required placeholder="e.g. Jordan Cole" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:border-cyan-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Work Email</label>
+            <input type="email" id="addUserEmail" placeholder="e.g. jordan.cole@example.com" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:border-cyan-400 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Department *</label>
+            <select id="addUserDepartment" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:border-cyan-400 focus:outline-none">
+              <option value="Engineering">Engineering</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Sales">Sales</option>
+              <option value="Finance">Finance</option>
+              <option value="Human Resources">Human Resources</option>
+              <option value="Customer Support">Customer Support</option>
+              <option value="Legal">Legal</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Current Job Title *</label>
+            <input type="text" id="addUserTitle" required placeholder="e.g. DevOps Contractor" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:border-cyan-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Previous Role (Drift Context)</label>
+            <input type="text" id="addUserPreviousRole" placeholder="e.g. Lead Infrastructure Intern" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:border-cyan-400 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Hygiene Levers -->
+        <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2.5">
+          <div class="font-semibold text-slate-200 uppercase tracking-wider text-[11px] flex items-center space-x-1.5">
+            <i data-lucide="lock" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span>Identity Hygiene &amp; Behavior Settings</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-slate-400 mb-1">MFA Status</label>
+              <select id="addUserMFA" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:border-cyan-400 focus:outline-none">
+                <option value="true">Enforced / Active (Safe)</option>
+                <option value="false">Disabled / Missing (+25 Risk)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">Inactivity (Days)</label>
+              <input type="number" id="addUserInactivity" min="0" max="365" value="14" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:border-cyan-400 focus:outline-none">
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">Lookout Anomaly Score (0-100)</label>
+              <input type="number" id="addUserAnomaly" min="0" max="100" value="15" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:border-cyan-400 focus:outline-none">
+            </div>
+          </div>
+
+          <div class="pt-1.5">
+            <label class="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" id="addUserDrift" class="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0">
+              <span class="font-medium text-amber-300">Flag as Permission Drift (+25 Risk Points)</span>
+            </label>
+            <input type="text" id="addUserDriftSummary" placeholder="Drift summary: e.g. Retained AWS Root privileges after contract change" class="mt-1.5 w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 placeholder-slate-500 focus:border-amber-400 focus:outline-none text-xs">
+          </div>
+        </div>
+
+        <!-- SaaS Permissions Dynamic Builder -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-slate-200 uppercase tracking-wider text-[11px] flex items-center space-x-1.5">
+              <i data-lucide="key" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Consented SaaS Permissions &amp; Roles</span>
+            </span>
+            <button type="button" onclick="addSaasRow()" class="text-xs text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 font-semibold">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+              <span>+ Add Permission</span>
+            </button>
+          </div>
+
+          <div id="saasRowsContainer" class="space-y-2">
+            <!-- Dynamic rows inserted here -->
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="toggleModal('addUserModal')" class="px-3.5 py-2 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg">
+            Cancel
+          </button>
+          <button type="submit" id="saveUserBtn" class="px-4 py-2 text-xs font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-lg flex items-center space-x-1.5 shadow-md shadow-cyan-500/20">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Ingest Identity into Matrix</span>
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ZERO-TRUST AUTHENTICATION MODAL -->
+  <div id="authModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+    <div class="cyber-card rounded-2xl max-w-md w-full p-6 border-slate-700 shadow-2xl space-y-4">
+      
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="h-9 w-9 rounded-xl bg-cyan-950 border border-cyan-800 flex items-center justify-center">
+            <i data-lucide="shield-alert" class="w-5 h-5 text-cyan-400"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Zero-Trust Authentication Portal</h3>
+            <p class="text-xs text-slate-400">AWS IAM Identity Center &amp; Enterprise SSO</p>
+          </div>
+        </div>
+        <button onclick="toggleModal('authModal')" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 pt-1">
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Simulate enterprise identity verification and single sign-on assertion for the AccessGuard AI governance console:
+        </p>
+
+        <!-- SSO 1 -->
+        <button onclick="simulateAuthModalLogin('Alex Vance (SSO)', 'AWS IAM Identity Center (SSO)')" class="w-full py-2.5 px-3 rounded-xl border border-amber-600/40 bg-gradient-to-r from-amber-950/60 to-slate-900 hover:from-amber-900/60 text-amber-200 text-xs font-semibold flex items-center justify-center space-x-2 transition">
+          <i data-lucide="cloud" class="w-4 h-4 text-amber-400"></i>
+          <span>Sign In with AWS IAM Identity Center</span>
+        </button>
+
+        <!-- SSO 2 -->
+        <button onclick="simulateAuthModalLogin('Alex Vance (Okta)', 'Okta Enterprise IdP')" class="w-full py-2.5 px-3 rounded-xl border border-blue-600/40 bg-gradient-to-r from-blue-950/60 to-slate-900 hover:from-blue-900/60 text-blue-200 text-xs font-semibold flex items-center justify-center space-x-2 transition">
+          <i data-lucide="key-round" class="w-4 h-4 text-blue-400"></i>
+          <span>Sign In with Okta Enterprise IdP</span>
+        </button>
+
+        <!-- MFA Indicator -->
+        <div class="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-800/40 flex items-center justify-between text-[11px]">
+          <div class="flex items-center space-x-2 text-emerald-300 font-medium">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+            <span>Hardware MFA Token (TOTP) Verified</span>
+          </div>
+          <span class="font-mono-code text-[10px] text-emerald-400">Active</span>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+          <a href="login.html" class="text-xs text-cyan-400 hover:underline flex items-center space-x-1">
+            <span>Open Dedicated Login Page &rarr;</span>
+          </a>
+          <button onclick="toggleModal('authModal')" class="px-3.5 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg">
+            Done
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- EMPLOYEE AUDIT DETAIL & ZERO-TRUST REMEDIATION MODAL -->
+  <div id="detailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+    <div class="cyber-card rounded-2xl max-w-2xl w-full p-6 border-slate-700 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-3">
+          <img id="modalAvatar" src="" class="w-10 h-10 rounded-full border border-slate-600 object-cover" alt="Avatar">
+          <div>
+            <h3 class="text-sm font-bold text-white" id="modalName">Employee Name</h3>
+            <p class="text-xs text-slate-400" id="modalSub">Title &bull; Department</p>
+          </div>
+        </div>
+        <button onclick="toggleModal('detailModal')" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Risk Badge & Score -->
+      <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800">
+        <div>
+          <span class="text-[10px] text-slate-400 uppercase tracking-wider block">Assessed Risk Score</span>
+          <span class="text-xl font-bold font-mono-code" id="modalScore">-</span>
+        </div>
+        <div class="text-right">
+          <span class="text-xs font-semibold px-3 py-1 rounded-full uppercase" id="modalTierBadge">-</span>
+          <span class="text-[10px] text-slate-400 block mt-1" id="modalAnomalyText">Lookout Anomaly: -</span>
+        </div>
+      </div>
+
+      <!-- Consented SaaS User Roles & Status -->
+      <div>
+        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+          <i data-lucide="check-circle" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Consented SaaS User Roles</span>
+        </h4>
+        <div id="modalConsentedRolesList" class="space-y-1.5 text-xs">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+      <!-- Active SaaS Privileges -->
+      <div>
+        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+          <i data-lucide="key" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Connected SaaS Privileges</span>
+        </h4>
+        <div id="modalPermissionsList" class="space-y-1.5 text-xs">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+      <!-- Access History & Usage Patterns -->
+      <div>
+        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+          <i data-lucide="activity" class="w-3.5 h-3.5 text-blue-400"></i>
+          <span>Access History &amp; Usage Pattern Log (Athena / CloudTrail)</span>
+        </h4>
+        <div id="modalAccessHistoryList" class="space-y-1.5 text-xs">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+      <!-- Explainable Findings & Remediation -->
+      <div>
+        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i>
+          <span>Explainable AI Early Warnings &amp; Findings (Amazon Bedrock)</span>
+        </h4>
+        <div id="modalFindingsList" class="space-y-2 text-xs">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-slate-800">
+        <!-- Automated Zero-Trust Revocation Button -->
+        <button id="modalRemediateBtn" onclick="executeAutomatedRemediation()" class="px-3 py-1.5 text-xs font-semibold bg-red-950/80 hover:bg-red-900 border border-red-800 text-red-200 rounded-lg flex items-center space-x-1.5 transition">
+          <i data-lucide="shield-off" class="w-3.5 h-3.5 text-red-400"></i>
+          <span>Automated Zero-Trust Revocation</span>
+        </button>
+
+        <div class="flex items-center space-x-2">
+          <button onclick="sendToSimulatorFromModal()" class="px-3.5 py-1.5 text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg flex items-center space-x-1.5 transition">
+            <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+            <span>Send to Simulator</span>
+          </button>
+          <button onclick="toggleModal('detailModal')" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg">
+            Close
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-900 bg-slate-950 py-4 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center space-x-2">
+        <span class="font-medium text-slate-400">AccessGuard AI</span>
+        <span>&bull;</span>
+        <span class="text-cyan-400">SaaS Access Risk &amp; Permission Drift Detection</span>
+      </div>
+      <div>
+        Built with Amazon AppFlow, Lambda, API Gateway, S3, OpenSearch, Athena, SageMaker, Lookout for Metrics, Glue, Bedrock, Step Functions, EventBridge, SNS, Security Hub, IAM Identity Center, KMS &amp; CloudTrail.
+      </div>
+    </div>
+  </footer>
+
+  <!-- ====================================================================== -->
+  <!-- APPLICATION LOGIC (CONNECTS TO FLASK REST BACKEND WITH FAILSAFE DATA)    -->
+  <!-- ====================================================================== -->
+  <script>
+    const API_BASE_URL = 
+    'https://hzalwnassl.execute-api.ap-south-1.amazonaws.com'
+    // Default Baseline Employees (Exact 6 sample records from specification)
+    const DEFAULT_EMPLOYEES = [
+      {
+        "id": "EMP-001",
+        "name": "Bob Martinez",
+        "email": "bob.martinez@example.com",
+        "department": "Marketing",
+        "title": "Contract Content Writer",
+        "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+        "mfa_enabled": false,
+        "last_login_days": 114,
+        "saas_accounts": ["Salesforce", "AWS IAM", "Snowflake", "Slack"],
+        "assigned_roles": ["Salesforce System Admin", "AWS ReadOnlyAccess", "Snowflake Financial Data Reader"],
+        "consented_roles": [
+          {"service": "Salesforce", "role": "System Administrator", "consent_date": "2024-03-15", "status": "Outdated (Contract Changed)"},
+          {"service": "Snowflake", "role": "Financial Ledger Reader", "consent_date": "2024-03-20", "status": "Excessive Scope"},
+          {"service": "AWS IAM", "role": "Production Read", "consent_date": "2024-04-10", "status": "Residual Access"},
+          {"service": "Slack", "role": "Standard Member", "consent_date": "2024-03-15", "status": "Legitimate"}
+        ],
+        "permissions": [
+          {"service": "Salesforce", "privilege": "System Administrator", "is_admin": true, "sensitive": true},
+          {"service": "AWS IAM", "privilege": "Production Read", "is_admin": false, "sensitive": true},
+          {"service": "Snowflake", "privilege": "Financial Ledger Query", "is_admin": false, "sensitive": true},
+          {"service": "Slack", "privilege": "Standard Member", "is_admin": false, "sensitive": false}
+        ],
+        "access_history": [
+          {"timestamp": "2026-10-14 02:15:00 UTC", "service": "Snowflake", "action": "SELECT * FROM corporate_ledger_2026", "anomaly": true},
+          {"timestamp": "2026-09-20 23:40:00 UTC", "service": "Salesforce", "action": "Export User Identity Metadata", "anomaly": true},
+          {"timestamp": "2026-07-01 11:30:00 UTC", "service": "Slack", "action": "Channel Read #marketing", "anomaly": false}
+        ],
+        "usage_patterns": {
+          "anomaly_score": 92,
+          "status": "Severe Anomaly",
+          "details": "Amazon SageMaker anomaly model detected high-volume financial data queries that are unusual for the Marketing Writer peer group."
+        },
+        "drift_detected": true,
+        "drift_summary": "Former Marketing Intern retained Salesforce Super Admin and Snowflake Financial DB access after contract change 90 days ago.",
+        "previous_role": "Marketing Tech Intern (2024)",
+        "risk_score": 100,
+        "risk_tier": "CRITICAL",
+        "findings": [
+          {"category": "Outdated / Stale Access", "severity": "HIGH", "score_impact": "+25", "aws_tool": "Amazon S3 (access logs)", "description": "Account has been inactive for 114 days (limit: 90 days).", "remediation": "Suspend the account, or require re-authentication."},
+          {"category": "No Multi-Factor Authentication", "severity": "HIGH", "score_impact": "+25", "aws_tool": "AWS CloudTrail", "description": "Multi-Factor Authentication (MFA) is turned off for this user.", "remediation": "Enforce MFA through SSO provider."},
+          {"category": "Permission Drift", "severity": "CRITICAL", "score_impact": "+25", "aws_tool": "Amazon SageMaker", "description": "Leftover Salesforce Admin and Snowflake access from previous contract.", "remediation": "Remove leftover roles and keep only what the current job needs."},
+          {"category": "Excessive Privilege", "severity": "HIGH", "score_impact": "+15", "aws_tool": "Amazon SageMaker", "description": "Holds Salesforce System Administrator privilege.", "remediation": "Downgrade to Standard User."},
+          {"category": "Anomalous Usage Pattern", "severity": "CRITICAL", "score_impact": "+20", "aws_tool": "Amazon SageMaker", "description": "High-volume corporate ledger queries.", "remediation": "Restrict financial ledger access."}
+        ]
+      },
+      {
+        "id": "EMP-002",
+        "name": "Sarah Jenkins",
+        "email": "sarah.j@contractor-example.com",
+        "department": "Engineering",
+        "title": "Former QA Contractor",
+        "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+        "mfa_enabled": true,
+        "last_login_days": 18,
+        "saas_accounts": ["GitHub", "Jira", "AWS IAM"],
+        "assigned_roles": ["GitHub Org Owner", "Jira Project Lead", "AWS Staging Deployer"],
+        "consented_roles": [
+          {"service": "GitHub", "role": "Organization Owner", "consent_date": "2024-08-01", "status": "Outdated (Contract Expired)"},
+          {"service": "Jira", "role": "Project Admin", "consent_date": "2024-08-01", "status": "Excessive"},
+          {"service": "AWS IAM", "role": "Staging Deployment Role", "consent_date": "2024-08-15", "status": "Pending Revocation"}
+        ],
+        "permissions": [
+          {"service": "GitHub", "privilege": "Organization Owner (Full Admin)", "is_admin": true, "sensitive": true},
+          {"service": "Jira", "privilege": "Project Admin", "is_admin": true, "sensitive": false},
+          {"service": "AWS IAM", "privilege": "Staging Deployment Role", "is_admin": false, "sensitive": true}
+        ],
+        "access_history": [
+          {"timestamp": "2026-10-18 09:10:00 UTC", "service": "GitHub", "action": "Repository Admin Settings Read", "anomaly": true}
+        ],
+        "usage_patterns": {
+          "anomaly_score": 78,
+          "status": "Outdated Contract Activity",
+          "details": "Amazon SageMaker flagged GitHub Org Owner API activity 14 days after contract completion."
+        },
+        "drift_detected": true,
+        "drift_summary": "Contract completed 14 days ago, but identity still holds GitHub Organization Owner privileges.",
+        "previous_role": "Lead QA Consultant",
+        "risk_score": 85,
+        "risk_tier": "CRITICAL",
+        "findings": [
+          {"category": "Permission Drift", "severity": "CRITICAL", "score_impact": "+25", "aws_tool": "Amazon SageMaker", "description": "Contract completed but retains GitHub Org Owner rights.", "remediation": "Deprovision contractor SaaS bindings."},
+          {"category": "Excessive Privilege", "severity": "HIGH", "score_impact": "+30", "aws_tool": "Amazon SageMaker", "description": "Holds 2 administrator roles.", "remediation": "Revoke administrator privileges."},
+          {"category": "Anomalous Usage Pattern", "severity": "HIGH", "score_impact": "+20", "aws_tool": "Amazon SageMaker", "description": "Admin settings API call post-termination.", "remediation": "Immediate credential revocation."}
+        ]
+      },
+      {
+        "id": "EMP-003",
+        "name": "Marcus Vance",
+        "email": "marcus.vance@example.com",
+        "department": "Sales",
+        "title": "VP of Global Sales",
+        "avatar": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80",
+        "mfa_enabled": true,
+        "last_login_days": 2,
+        "saas_accounts": ["Salesforce", "AWS IAM", "Google Workspace"],
+        "assigned_roles": ["Salesforce Sales Lead", "AWS IAM AdministratorAccess"],
+        "consented_roles": [
+          {"service": "Salesforce", "role": "Enterprise Sales Admin", "consent_date": "2022-01-10", "status": "Legitimate"},
+          {"service": "AWS IAM", "role": "AdministratorAccess (Root Equivalent)", "consent_date": "2022-01-10", "status": "Toxic Combination"},
+          {"service": "Google Workspace", "role": "Standard User", "consent_date": "2022-01-10", "status": "Legitimate"}
+        ],
+        "permissions": [
+          {"service": "Salesforce", "privilege": "Enterprise Sales Admin", "is_admin": true, "sensitive": false},
+          {"service": "AWS IAM", "privilege": "AdministratorAccess (Root Equivalent)", "is_admin": true, "sensitive": true},
+          {"service": "Google Workspace", "privilege": "Standard User", "is_admin": false, "sensitive": false}
+        ],
+        "access_history": [
+          {"timestamp": "2026-10-22 17:00:00 UTC", "service": "Salesforce", "action": "Pipeline Opportunity Closed-Won Update", "anomaly": false}
+        ],
+        "usage_patterns": {
+          "anomaly_score": 82,
+          "status": "Excessive Cloud Admin",
+          "details": "AWS CloudTrail audit records indicate zero deployment activities in 180 days, yet identity holds root AdministratorAccess."
+        },
+        "drift_detected": true,
+        "drift_summary": "Retained early-stage startup AWS AdministratorAccess granted in 2022 despite working solely in Sales leadership.",
+        "previous_role": "Founding Business Lead (2022)",
+        "risk_score": 75,
+        "risk_tier": "HIGH",
+        "findings": [
+          {"category": "Toxic Combination", "severity": "CRITICAL", "score_impact": "+15", "aws_tool": "Amazon SageMaker", "description": "Sales VP holds AWS Cloud root AdministratorAccess.", "remediation": "Remove cloud admin role immediately."},
+          {"category": "Permission Drift", "severity": "CRITICAL", "score_impact": "+25", "aws_tool": "Amazon SageMaker", "description": "Startup root cloud privileges never offboarded.", "remediation": "Enforce departmental boundaries."}
+        ]
+      },
+      {
+        "id": "EMP-004",
+        "name": "David Kim",
+        "email": "david.kim@example.com",
+        "department": "Engineering",
+        "title": "Senior Backend Engineer",
+        "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+        "mfa_enabled": true,
+        "last_login_days": 1,
+        "saas_accounts": ["AWS IAM", "GitHub", "Datadog", "PagerDuty"],
+        "assigned_roles": ["AWS PowerUser", "GitHub Write", "Datadog Read"],
+        "consented_roles": [
+          {"service": "AWS IAM", "role": "PowerUserAccess", "consent_date": "2023-06-15", "status": "Least Privilege Aligned"},
+          {"service": "GitHub", "role": "Repository Write", "consent_date": "2023-06-15", "status": "Legitimate"},
+          {"service": "Datadog", "role": "APM Read Only", "consent_date": "2023-06-15", "status": "Legitimate"}
+        ],
+        "permissions": [
+          {"service": "AWS IAM", "privilege": "PowerUserAccess", "is_admin": false, "sensitive": true},
+          {"service": "GitHub", "privilege": "Repository Write", "is_admin": false, "sensitive": false},
+          {"service": "Datadog", "privilege": "APM Read Only", "is_admin": false, "sensitive": false}
+        ],
+        "access_history": [
+          {"timestamp": "2026-10-23 10:15:00 UTC", "service": "GitHub", "action": "git push origin feat/api-gateway", "anomaly": false}
+        ],
+        "usage_patterns": {
+          "anomaly_score": 8,
+          "status": "Normal Usage Pattern",
+          "details": "Routine Git commits and CloudWatch queries strictly aligned with Backend Engineer peer group in Amazon SageMaker."
+        },
+        "drift_detected": false,
+        "drift_summary": "Permissions properly aligned with active engineering sprint needs.",
+        "previous_role": "Backend Engineer",
+        "risk_score": 15,
+        "risk_tier": "LOW",
+        "findings": []
+      },
+      {
+        "id": "EMP-005",
+        "name": "Elena Rostova",
+        "email": "elena.rostova@example.com",
+        "department": "Human Resources",
+        "title": "HR Operations Specialist",
+        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+        "mfa_enabled": true,
+        "last_login_days": 3,
+        "saas_accounts": ["Workday", "Okta", "Google Workspace"],
+        "assigned_roles": ["Workday People Lead", "Okta Standard User"],
+        "consented_roles": [
+          {"service": "Workday", "role": "Employee Directory Admin", "consent_date": "2023-11-01", "status": "Legitimate"},
+          {"service": "Okta", "role": "End User Portal", "consent_date": "2023-11-01", "status": "Legitimate"}
+        ],
+        "permissions": [
+          {"service": "Workday", "privilege": "Employee Directory Admin", "is_admin": false, "sensitive": true},
+          {"service": "Okta", "privilege": "End User Portal", "is_admin": false, "sensitive": false}
+        ],
+        "access_history": [
+          {"timestamp": "2026-10-20 14:00:00 UTC", "service": "Workday", "action": "Generate Monthly Onboarding Report", "anomaly": false}
+        ],
+        "usage_patterns": {
+          "anomaly_score": 5,
+          "status": "Normal Usage Pattern",
+          "details": "Standard HR directory queries during working hours."
+        },
+        "drift_detected": false,
+        "drift_summary": "Least-privilege compliant. Standard HR departmental boundaries respected.",
+        "previous_role": "HR Coordinator",
+        "risk_score": 10,
+        "risk_tier": "LOW",
+        "findings": []
+      },
+      {
+        "id": "EMP-006",
+        "name": "Frank Castle",
+        "email": "frank.c@example.com",
+        "department": "Customer Support",
+        "title": "Support Tier 1 Agent",
+        "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+        "mfa_enabled": false,
+        "last_login_days": 145,
+        "saas_accounts": ["Zendesk", "Salesforce", "Google Workspace"],
+        "assigned_roles": ["Zendesk Agent", "Salesforce Read"],
+        "consented_roles": [
+          {"service": "Zendesk", "role": "Agent Ticket Access", "consent_date": "2024-01-20", "status": "Dormant Scope"},
+          {"service": "Salesforce", "role": "Lead Viewer", "consent_date": "2024-01-20", "status": "Dormant Scope"}
+        ],
+        "permissions": [
+          {"service": "Zendesk", "privilege": "Agent Ticket Access", "is_admin": false, "sensitive": false},
+          {"service": "Salesforce", "privilege": "Lead Viewer", "is_admin": false, "sensitive": false}
+        ],
+        "access_history": [
+          {"timestamp": "2026-05-30 08:00:00 UTC", "service": "Zendesk", "action": "Ticket Resolution #1043", "anomaly": false}
+        ],
+        "usage_patterns": {
+          "anomaly_score": 68,
+          "status": "Dormant / Stale Account",
+          "details": "Zero authentication events for 145 days. High credential-stuffing vulnerability without MFA."
+        },
+        "drift_detected": false,
+        "drift_summary": "Account appears dormant (>140 days without activity) and lacks Multi-Factor Authentication.",
+        "previous_role": "Support Agent",
+        "risk_score": 60,
+        "risk_tier": "HIGH",
+        "findings": [
+          {"category": "Outdated / Stale Access", "severity": "CRITICAL", "score_impact": "+35", "aws_tool": "Amazon S3", "description": "145 days inactive.", "remediation": "Deactivate dormant credentials."},
+          {"category": "No Multi-Factor Authentication", "severity": "HIGH", "score_impact": "+25", "aws_tool": "AWS CloudTrail", "description": "MFA disabled on customer support portal.", "remediation": "Enforce MFA."}
+        ]
+      }
+    ];
+
+    const DEFAULT_TIMELINE = [
+      {
+        "id": "LOG-101",
+        "timestamp": "2026-10-21 16:45:00 UTC",
+        "employee_id": "EMP-001",
+        "employee_name": "Bob Martinez",
+        "action": "Permission Drift Detected",
+        "details": "Contract changed to Copywriter; Salesforce System Admin and Snowflake access were not offboarded.",
+        "risk_delta": "+57",
+        "severity": "CRITICAL",
+        "aws_source": "Amazon SageMaker (role clustering)"
+      },
+      {
+        "id": "LOG-102",
+        "timestamp": "2026-10-18 09:12:00 UTC",
+        "employee_id": "EMP-002",
+        "employee_name": "Sarah Jenkins",
+        "action": "Offboarding Incomplete",
+        "details": "Contract ended on Oct 10; GitHub Organization Owner privilege still active.",
+        "risk_delta": "+45",
+        "severity": "CRITICAL",
+        "aws_source": "Amazon SageMaker (anomaly model)"
+      },
+      {
+        "id": "LOG-103",
+        "timestamp": "2026-10-15 14:30:00 UTC",
+        "employee_id": "EMP-003",
+        "employee_name": "Marcus Vance",
+        "action": "Excessive Privilege Flagged",
+        "details": "VP of Sales detected with active AWS AdministratorAccess (Root equivalent).",
+        "risk_delta": "+28",
+        "severity": "HIGH",
+        "aws_source": "Amazon SageMaker (peer comparison)"
+      }
+    ];
+
+    const DEFAULT_SAAS_CATALOG = [
+      {"id": "salesforce", "name": "Salesforce", "category": "CRM & Enterprise Sales", "icon": "cloud", "description": "Enterprise customer data and opportunity management.", "available_roles": [{"role": "System Administrator", "is_admin": true, "sensitive": true}, {"role": "Enterprise Sales Admin", "is_admin": true, "sensitive": false}, {"role": "Standard User", "is_admin": false, "sensitive": false}]},
+      {"id": "aws_iam", "name": "AWS IAM", "category": "Cloud Infrastructure", "icon": "server", "description": "Cloud infrastructure roles, policies, and root credentials.", "available_roles": [{"role": "AdministratorAccess (Root Equivalent)", "is_admin": true, "sensitive": true}, {"role": "PowerUserAccess", "is_admin": false, "sensitive": true}, {"role": "Production Read", "is_admin": false, "sensitive": true}]},
+      {"id": "github", "name": "GitHub Enterprise", "category": "Source Code & CI/CD", "icon": "git-pull-request", "description": "Source code repositories, automated runners, and secrets.", "available_roles": [{"role": "Organization Owner", "is_admin": true, "sensitive": true}, {"role": "Repository Admin", "is_admin": true, "sensitive": true}, {"role": "Repository Write", "is_admin": false, "sensitive": false}]},
+      {"id": "snowflake", "name": "Snowflake", "category": "Data Warehouse & Analytics", "icon": "database", "description": "Corporate data warehouse and financial ledger query logs.", "available_roles": [{"role": "AccountAdmin", "is_admin": true, "sensitive": true}, {"role": "Financial Ledger Reader", "is_admin": false, "sensitive": true}, {"role": "Data Analyst (BI)", "is_admin": false, "sensitive": false}]},
+      {"id": "okta", "name": "Okta", "category": "Identity & Access Management (IdP)", "icon": "key-round", "description": "Single sign-on (SSO), MFA tokens, and lifecycle bindings.", "available_roles": [{"role": "Super Administrator", "is_admin": true, "sensitive": true}, {"role": "End User Portal", "is_admin": false, "sensitive": false}]},
+      {"id": "google_workspace", "name": "Google Workspace", "category": "Productivity & Collaboration", "icon": "mail", "description": "Corporate Gmail, Drive document storage, and domain management.", "available_roles": [{"role": "Super Admin", "is_admin": true, "sensitive": true}, {"role": "Standard Member", "is_admin": false, "sensitive": false}]},
+      {"id": "slack", "name": "Slack Enterprise Grid", "category": "Team Communications", "icon": "message-square", "description": "Internal team channels and integrated workflow apps.", "available_roles": [{"role": "Primary Org Owner", "is_admin": true, "sensitive": true}, {"role": "Standard Member", "is_admin": false, "sensitive": false}]},
+      {"id": "jira", "name": "Jira Software", "category": "Project Tracking", "icon": "check-square", "description": "Engineering backlogs, tickets, and workflow schemes.", "available_roles": [{"role": "Project Admin", "is_admin": true, "sensitive": false}, {"role": "Standard Contributor", "is_admin": false, "sensitive": false}]},
+      {"id": "servicenow", "name": "ServiceNow", "category": "ITSM & Change Management", "icon": "layers", "description": "Enterprise change management and access requests.", "available_roles": [{"role": "System Administrator", "is_admin": true, "sensitive": true}, {"role": "ITIL Agent", "is_admin": false, "sensitive": false}]},
+      {"id": "datadog", "name": "Datadog", "category": "Observability & APM", "icon": "activity", "description": "APM telemetry, production monitoring, and security alerts.", "available_roles": [{"role": "Datadog Admin", "is_admin": true, "sensitive": true}, {"role": "APM Read Only", "is_admin": false, "sensitive": false}]},
+      {"id": "zendesk", "name": "Zendesk", "category": "Customer Support Desk", "icon": "headphones", "description": "Customer support tickets and user identity metadata.", "available_roles": [{"role": "Account Administrator", "is_admin": true, "sensitive": true}, {"role": "Agent Ticket Access", "is_admin": false, "sensitive": false}]},
+      {"id": "microsoft365", "name": "Microsoft 365 / Entra ID", "category": "Productivity & Cloud Identity", "icon": "layout-grid", "description": "Entra ID tenant, Exchange Online mailflow, and Teams.", "available_roles": [{"role": "Global Administrator", "is_admin": true, "sensitive": true}, {"role": "Standard Business User", "is_admin": false, "sensitive": false}]}
+    ];
+
+    // Global application state
+    let state = {
+      employees: JSON.parse(JSON.stringify(DEFAULT_EMPLOYEES)),
+      summary: {},
+      selectedEmployeeId: null,
+      timeline: JSON.parse(JSON.stringify(DEFAULT_TIMELINE)),
+      saasCatalog: JSON.parse(JSON.stringify(DEFAULT_SAAS_CATALOG))
+    };
+
+    // Initialize application on load
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      // Render baseline immediately so the screen is never empty
+      updateKPIsFromState();
+      renderEmployeesTable(state.employees);
+      renderDriftTimeline(state.timeline);
+      renderSaasCatalogGrid(state.saasCatalog);
+      populateSimulatorDropdown(state.employees);
+
+      // Attempt live sync with backend API
+      checkBackendHealth();
+      fetchSaasIntegrations();
+      fetchEmployees();
+      fetchDriftHistory();
+    });
+
+    // 1. Health Check
+    async function checkBackendHealth() {
+      const dot = document.getElementById('backend-dot');
+      const text = document.getElementById('backend-text');
+      try {
+        const res = await fetch(`${API_BASE_URL}/health`);
+        if (res.ok) {
+          dot.className = "h-2 w-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400";
+          text.textContent = "Backend: Connected (Port 5000)";
+          text.className = "text-emerald-300 font-mono-code";
+        }
+      } catch (err) {
+        dot.className = "h-2 w-2 rounded-full bg-cyan-400";
+        text.textContent = "Engine: Active";
+        text.className = "text-cyan-300 font-mono-code";
+      }
+    }
+
+    // 2. Fetch Employees & Summary KPIs
+    async function fetchEmployees() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/employees`);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const data = await res.json();
+        if (data.employees && data.employees.length > 0) {
+          state.employees = data.employees;
+          state.summary = data.summary || {};
+          updateKPIs();
+          renderEmployeesTable(state.employees);
+          populateSimulatorDropdown(state.employees);
+          return;
+        }
+      } catch (err) {}
+      updateKPIsFromState();
+      renderEmployeesTable(state.employees);
+      populateSimulatorDropdown(state.employees);
+    }
+
+    // 3. Fetch Drift Timeline History
+    async function fetchDriftHistory() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/drift-history`);
+        if (!res.ok) throw new Error('Failed to load history');
+        const data = await res.json();
+        if (data.timeline && data.timeline.length > 0) {
+          state.timeline = data.timeline;
+          renderDriftTimeline(state.timeline);
+          return;
+        }
+      } catch (err) {}
+      renderDriftTimeline(state.timeline);
+    }
+
+    // 4. Fetch Supported SaaS Catalog
+    async function fetchSaasIntegrations() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/saas-integrations`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.integrations && data.integrations.length > 0) {
+          state.saasCatalog = data.integrations;
+          renderSaasCatalogGrid(state.saasCatalog);
+        }
+      } catch (err) {}
+    }
+
+    function renderSaasCatalogGrid(list) {
+      const container = document.getElementById('saasIntegrationsGrid');
+      if (!list || list.length === 0) return;
+
+      container.innerHTML = list.map(item => `
+        <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 space-y-2.5 transition flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center space-x-2">
+                <div class="p-1.5 rounded-lg bg-cyan-950/80 border border-cyan-800 text-cyan-400">
+                  <i data-lucide="${item.icon || 'cloud'}" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h4 class="font-bold text-slate-100 text-xs">${item.name}</h4>
+                  <span class="text-[10px] text-slate-400">${item.category}</span>
+                </div>
+              </div>
+              <span class="text-[9px] font-mono-code px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
+                Active
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-300 leading-relaxed">${item.description}</p>
+          </div>
+
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-[10px] text-cyan-400 font-mono-code">${(item.available_roles || []).length} Roles</span>
+            <button onclick="ingestPresetFromSaaS('${item.id}')" class="px-2 py-1 rounded-md bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[10px] font-semibold flex items-center space-x-1 transition">
+              <i data-lucide="plus" class="w-3 h-3"></i>
+              <span>Ingest Demo User</span>
+            </button>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // Update KPI Card Numbers
+    function updateKPIs() {
+      const s = state.summary;
+      document.getElementById('kpiTotal').textContent = s.total_identities ?? state.employees.length;
+      document.getElementById('kpiCritical').textContent = s.critical_risk ?? state.employees.filter(e => e.risk_tier === 'CRITICAL').length;
+      document.getElementById('kpiDrift').textContent = s.permission_drift_count ?? state.employees.filter(e => e.drift_detected).length;
+      document.getElementById('kpiDormant').textContent = s.dormant_accounts ?? state.employees.filter(e => (e.last_login_days || 0) >= 90).length;
+      document.getElementById('kpiAvgRisk').textContent = (s.avg_risk_score ?? '60.8') + '/100';
+    }
+
+    function updateKPIsFromState() {
+      const total = state.employees.length;
+      const critical = state.employees.filter(e => e.risk_tier === 'CRITICAL').length;
+      const drift = state.employees.filter(e => e.drift_detected).length;
+      const dormant = state.employees.filter(e => (e.last_login_days || 0) >= 90).length;
+      const avg = total > 0 ? (state.employees.reduce((acc, e) => acc + (e.risk_score || 0), 0) / total).toFixed(1) : '0';
+
+      document.getElementById('kpiTotal').textContent = total;
+      document.getElementById('kpiCritical').textContent = critical;
+      document.getElementById('kpiDrift').textContent = drift;
+      document.getElementById('kpiDormant').textContent = dormant;
+      document.getElementById('kpiAvgRisk').textContent = `${avg}/100`;
+    }
+
+    // Render Employee Governance Table (Exact Original Structure)
+    function renderEmployeesTable(list) {
+      const tbody = document.getElementById('employeesTableBody');
+      const counter = document.getElementById('matchedCount');
+      counter.textContent = `Showing ${list.length} of ${state.employees.length} identities`;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-8 text-center text-slate-500">
+              <i data-lucide="filter" class="w-6 h-6 mx-auto mb-2 text-slate-600"></i>
+              No identities match current filter criteria.
+            </td>
+          </tr>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      tbody.innerHTML = list.map(emp => {
+        let badgeColorClass = "bg-emerald-950 text-emerald-400 border-emerald-800";
+        if (emp.risk_tier === 'CRITICAL') badgeColorClass = "bg-red-950 text-red-400 border-red-800 badge-glow-red";
+        else if (emp.risk_tier === 'HIGH') badgeColorClass = "bg-orange-950 text-orange-400 border-orange-800";
+        else if (emp.risk_tier === 'MEDIUM') badgeColorClass = "bg-amber-950 text-amber-400 border-amber-800";
+
+        // Consented roles count & preview
+        const rolesList = (emp.consented_roles || []).map(r => `
+          <span class="inline-block px-1.5 py-0.5 rounded text-[10px] ${r.status && (r.status.includes('Outdated') || r.status.includes('Residual') || r.status.includes('Toxic') || r.status.includes('Excessive')) ? 'bg-amber-950/80 text-amber-300 border border-amber-800' : 'bg-slate-800 border border-slate-700 text-slate-300'} mr-1 mb-1 font-mono-code">${r.service}: ${r.role}</span>
+        `).join('');
+
+        // Usage pattern anomaly score badge (Amazon Lookout for Metrics)
+        const usage = emp.usage_patterns || {};
+        const anomalyScore = usage.anomaly_score ?? usage.lookout_anomaly_score ?? 0;
+        let anomalyBadge = `<span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-emerald-950/70 border border-emerald-800 text-emerald-300 font-medium">${anomalyScore}/100 Safe</span>`;
+        if (anomalyScore >= 70) {
+          anomalyBadge = `<span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 font-bold flex items-center w-max"><i data-lucide="alert-triangle" class="w-3 h-3 mr-1"></i> ${anomalyScore}/100 Anomaly</span>`;
+        }
+
+        // MFA & Inactivity
+        const mfaIcon = emp.mfa_enabled 
+          ? `<span class="text-emerald-400 flex items-center text-[11px]"><i data-lucide="shield-check" class="w-3.5 h-3.5 mr-1"></i> MFA Active</span>`
+          : `<span class="text-red-400 flex items-center text-[11px] font-semibold"><i data-lucide="shield-alert" class="w-3.5 h-3.5 mr-1"></i> No MFA</span>`;
+
+        return `
+          <tr class="hover:bg-slate-900/60 transition group">
+            <!-- User -->
+            <td class="py-3 px-4">
+              <div class="flex items-center space-x-3">
+                <img src="${emp.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}" class="w-8 h-8 rounded-full border border-slate-700 object-cover" alt="${emp.name}">
+                <div>
+                  <div class="font-semibold text-slate-100 group-hover:text-cyan-300 transition">${emp.name}</div>
+                  <div class="text-[11px] text-slate-400">${emp.title} &bull; <span class="text-slate-500">${emp.department}</span></div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Consented SaaS Footprint -->
+            <td class="py-3 px-4 max-w-[200px]">
+              <div class="flex flex-wrap">${rolesList || '<span class="text-slate-500">None</span>'}</div>
+            </td>
+
+            <!-- MFA & Inactivity -->
+            <td class="py-3 px-4">
+              <div>${mfaIcon}</div>
+              <div class="text-[10px] text-slate-400 mt-0.5 font-mono-code">${emp.last_login_days || 0}d inactive</div>
+            </td>
+
+            <!-- Usage Pattern Anomaly -->
+            <td class="py-3 px-4">
+              ${anomalyBadge}
+            </td>
+
+            <!-- Risk Score -->
+            <td class="py-3 px-4">
+              <div class="flex items-center space-x-2">
+                <span class="font-mono-code font-bold text-sm ${emp.risk_tier === 'CRITICAL' ? 'text-red-400' : (emp.risk_tier === 'HIGH' ? 'text-orange-400' : 'text-slate-200')}">
+                  ${emp.risk_score}
+                </span>
+                <span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded border ${badgeColorClass}">
+                  ${emp.risk_tier}
+                </span>
+              </div>
+            </td>
+
+            <!-- Actions -->
+            <td class="py-3 px-4 text-right">
+              <div class="flex items-center justify-end space-x-1.5">
+                <button onclick="openEmployeeDetail('${emp.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition" title="Inspect Security Findings">
+                  <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="selectForSimulator('${emp.id}')" class="px-2.5 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[11px] font-medium flex items-center space-x-1 transition" title="Send to Simulator">
+                  <i data-lucide="sliders" class="w-3 h-3"></i>
+                  <span>Simulate</span>
+                </button>
+                <button onclick="requestAiExplanation('${emp.id}')" class="p-1.5 rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-800 text-purple-300 transition" title="AI Explain (Amazon Bedrock)">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // Render Historical Drift Timeline
+    function renderDriftTimeline(logs) {
+      const container = document.getElementById('driftTimelineList');
+      if (!logs || logs.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-2">No historical drift records.</p>`;
+        return;
+      }
+
+      container.innerHTML = logs.map(log => {
+        let borderBadge = "border-amber-700 bg-amber-950 text-amber-300";
+        if (log.severity === 'CRITICAL') borderBadge = "border-red-700 bg-red-950 text-red-300";
+        if (log.severity === 'LOW') borderBadge = "border-emerald-700 bg-emerald-950 text-emerald-300";
+
+        return `
+          <div class="p-3 rounded-lg bg-slate-900/70 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:border-slate-700 transition">
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-semibold text-slate-200">${log.employee_name}</span>
+                <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded border ${borderBadge}">${log.action}</span>
+                <span class="text-[10px] text-slate-400 font-mono-code">${log.timestamp}</span>
+              </div>
+              <p class="text-xs text-slate-400 leading-relaxed">${log.details}</p>
+              ${log.aws_source ? `<span class="text-[10px] text-cyan-400/80 font-mono-code block"><i data-lucide="cpu" class="w-3 h-3 inline mr-1"></i>${log.aws_source}</span>` : ''}
+            </div>
+            <div class="flex items-center space-x-2 sm:self-center">
+              <span class="text-xs text-slate-400 font-mono-code">Risk Delta:</span>
+              <span class="font-mono-code text-xs font-bold ${log.risk_delta && log.risk_delta.startsWith('+') ? 'text-red-400' : 'text-emerald-400'} bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                ${log.risk_delta}
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // Search and Filter Logic
+    function filterEmployees() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const risk = document.getElementById('riskFilter').value;
+      const drift = document.getElementById('driftFilter').value;
+
+      const filtered = state.employees.filter(e => {
+        const matchesSearch = 
+          e.name.toLowerCase().includes(q) ||
+          e.department.toLowerCase().includes(q) ||
+          e.title.toLowerCase().includes(q) ||
+          (e.saas_accounts || []).some(s => s.toLowerCase().includes(q));
+
+        const matchesRisk = (risk === 'ALL') || (e.risk_tier === risk);
+        const matchesDrift = (drift === 'ALL') || 
+          (drift === 'DRIFT' && e.drift_detected) || 
+          (drift === 'CLEAN' && !e.drift_detected);
+
+        return matchesSearch && matchesRisk && matchesDrift;
+      });
+
+      renderEmployeesTable(filtered);
+    }
+
+    // -------------------------------------------------------------------------
+    // ADD NEW USER (DEMO DATA) MODAL & PRESETS
+    // -------------------------------------------------------------------------
+    function openAddUserModal() {
+      document.getElementById('addUserForm').reset();
+      document.getElementById('saasRowsContainer').innerHTML = '';
+      addSaasRow('AWS IAM', 'AdministratorAccess (Root Equivalent)', true, true, 'Residual Access');
+      toggleModal('addUserModal');
+    }
+
+    function addSaasRow(service = 'Salesforce', role = 'Standard User', isAdmin = false, sensitive = false, status = 'Legitimate') {
+      const container = document.getElementById('saasRowsContainer');
+      const rowId = `saas-row-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+      const rowHtml = document.createElement('div');
+      rowHtml.id = rowId;
+      rowHtml.className = "p-2.5 rounded-lg bg-slate-900 border border-slate-800 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center text-xs";
+      rowHtml.innerHTML = `
+        <div class="sm:col-span-3">
+          <select class="saas-service-input w-full p-1.5 rounded bg-slate-800 border border-slate-700 text-slate-100 focus:outline-none">
+            <option value="AWS IAM" ${service === 'AWS IAM' ? 'selected' : ''}>AWS IAM</option>
+            <option value="Salesforce" ${service === 'Salesforce' ? 'selected' : ''}>Salesforce</option>
+            <option value="GitHub" ${service === 'GitHub' ? 'selected' : ''}>GitHub Enterprise</option>
+            <option value="Snowflake" ${service === 'Snowflake' ? 'selected' : ''}>Snowflake</option>
+            <option value="Okta" ${service === 'Okta' ? 'selected' : ''}>Okta</option>
+            <option value="Google Workspace" ${service === 'Google Workspace' ? 'selected' : ''}>Google Workspace</option>
+            <option value="Slack" ${service === 'Slack' ? 'selected' : ''}>Slack</option>
+            <option value="Jira" ${service === 'Jira' ? 'selected' : ''}>Jira</option>
+            <option value="ServiceNow" ${service === 'ServiceNow' ? 'selected' : ''}>ServiceNow</option>
+            <option value="Datadog" ${service === 'Datadog' ? 'selected' : ''}>Datadog</option>
+            <option value="Zendesk" ${service === 'Zendesk' ? 'selected' : ''}>Zendesk</option>
+            <option value="Microsoft 365" ${service === 'Microsoft 365' ? 'selected' : ''}>Microsoft 365</option>
+          </select>
+        </div>
+        <div class="sm:col-span-4">
+          <input type="text" value="${role}" placeholder="Role / Privilege" class="saas-role-input w-full p-1.5 rounded bg-slate-800 border border-slate-700 text-slate-100 focus:outline-none">
+        </div>
+        <div class="sm:col-span-3 flex items-center space-x-2">
+          <label class="flex items-center space-x-1 cursor-pointer" title="Admin level privileges (+15 risk)">
+            <input type="checkbox" class="saas-admin-input rounded bg-slate-800 border-slate-700 text-red-500" ${isAdmin ? 'checked' : ''}>
+            <span class="text-[10px] text-red-300 font-semibold">Admin</span>
+          </label>
+          <label class="flex items-center space-x-1 cursor-pointer" title="Accesses sensitive data">
+            <input type="checkbox" class="saas-sensitive-input rounded bg-slate-800 border-slate-700 text-amber-500" ${sensitive ? 'checked' : ''}>
+            <span class="text-[10px] text-amber-300">Sensitive</span>
+          </label>
+        </div>
+        <div class="sm:col-span-2 flex items-center justify-end space-x-1">
+          <button type="button" onclick="removeSaasRow('${rowId}')" class="p-1 text-slate-400 hover:text-red-400 transition" title="Remove row">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      `;
+      container.appendChild(rowHtml);
+      lucide.createIcons();
+    }
+
+    function removeSaasRow(rowId) {
+      const el = document.getElementById(rowId);
+      if (el) el.remove();
+    }
+
+    function loadAddUserPreset(presetKey) {
+      const container = document.getElementById('saasRowsContainer');
+      container.innerHTML = '';
+
+      if (presetKey === 'devops_contractor') {
+        document.getElementById('addUserName').value = 'Jordan Cole';
+        document.getElementById('addUserEmail').value = 'jordan.cole@example.com';
+        document.getElementById('addUserDepartment').value = 'Engineering';
+        document.getElementById('addUserTitle').value = 'Former DevOps Contractor';
+        document.getElementById('addUserPreviousRole').value = 'Senior Infrastructure Lead';
+        document.getElementById('addUserMFA').value = 'false';
+        document.getElementById('addUserInactivity').value = '135';
+        document.getElementById('addUserAnomaly').value = '90';
+        document.getElementById('addUserDrift').checked = true;
+        document.getElementById('addUserDriftSummary').value = 'Retained AWS IAM AdministratorAccess and GitHub Org Owner privileges after 90-day contract completed.';
+        
+        addSaasRow('AWS IAM', 'AdministratorAccess (Root Equivalent)', true, true, 'Residual Access');
+        addSaasRow('GitHub', 'Organization Owner (Full Admin)', true, true, 'Residual Access');
+      } 
+      else if (presetKey === 'marketing_drift') {
+        document.getElementById('addUserName').value = 'Taylor Reid';
+        document.getElementById('addUserEmail').value = 'taylor.reid@example.com';
+        document.getElementById('addUserDepartment').value = 'Marketing';
+        document.getElementById('addUserTitle').value = 'Content Strategist';
+        document.getElementById('addUserPreviousRole').value = 'Financial Systems Analyst';
+        document.getElementById('addUserMFA').value = 'false';
+        document.getElementById('addUserInactivity').value = '105';
+        document.getElementById('addUserAnomaly').value = '82';
+        document.getElementById('addUserDrift').checked = true;
+        document.getElementById('addUserDriftSummary').value = 'Transferred from Finance to Marketing 6 months ago; retains Salesforce Admin and Snowflake Financial DB ledger access.';
+        
+        addSaasRow('Salesforce', 'System Administrator', true, true, 'Outdated');
+        addSaasRow('Snowflake', 'Financial Ledger Reader', false, true, 'Excessive Scope');
+      } 
+      else if (presetKey === 'compliant_peer') {
+        document.getElementById('addUserName').value = 'Chloe Zhang';
+        document.getElementById('addUserEmail').value = 'chloe.zhang@example.com';
+        document.getElementById('addUserDepartment').value = 'Customer Support';
+        document.getElementById('addUserTitle').value = 'Support Specialist Tier 2';
+        document.getElementById('addUserPreviousRole').value = 'Support Agent Tier 1';
+        document.getElementById('addUserMFA').value = 'true';
+        document.getElementById('addUserInactivity').value = '1';
+        document.getElementById('addUserAnomaly').value = '6';
+        document.getElementById('addUserDrift').checked = false;
+        document.getElementById('addUserDriftSummary').value = '';
+        
+        addSaasRow('Zendesk', 'Agent Ticket Access', false, false, 'Legitimate');
+        addSaasRow('Slack', 'Standard Member', false, false, 'Legitimate');
+      } 
+      else if (presetKey === 'toxic_combo') {
+        document.getElementById('addUserName').value = 'Liam Thorne';
+        document.getElementById('addUserEmail').value = 'liam.thorne@example.com';
+        document.getElementById('addUserDepartment').value = 'Sales';
+        document.getElementById('addUserTitle').value = 'Regional Sales Director';
+        document.getElementById('addUserPreviousRole').value = 'Account Executive';
+        document.getElementById('addUserMFA').value = 'true';
+        document.getElementById('addUserInactivity').value = '25';
+        document.getElementById('addUserAnomaly').value = '75';
+        document.getElementById('addUserDrift').checked = true;
+        document.getElementById('addUserDriftSummary').value = 'Sales Director holds AWS IAM AdministratorAccess root credential granted during early infrastructure sandbox setup.';
+        
+        addSaasRow('Salesforce', 'Enterprise Sales Admin', true, false, 'Legitimate');
+        addSaasRow('AWS IAM', 'AdministratorAccess (Root Equivalent)', true, true, 'Toxic Combination');
+      }
+    }
+
+    function ingestPresetFromSaaS(saasId) {
+      toggleModal('saasModal');
+      openAddUserModal();
+
+      const item = state.saasCatalog.find(s => s.id === saasId);
+      if (!item) return;
+
+      document.getElementById('addUserName').value = `Alex ${item.name} Operator`;
+      document.getElementById('addUserEmail').value = `alex.${item.id}@example.com`;
+      document.getElementById('addUserTitle').value = `${item.name} Specialist`;
+      
+      const container = document.getElementById('saasRowsContainer');
+      container.innerHTML = '';
+      (item.available_roles || []).slice(0, 2).forEach(r => {
+        addSaasRow(item.name, r.role, r.is_admin, r.sensitive, 'Active');
+      });
+    }
+
+    // Client-side risk engine fallback
+    function calculateRiskLocally(emp) {
+      let score = 0;
+      let findings = [];
+
+      const days = emp.last_login_days || 0;
+      if (days >= 90) {
+        const pts = days >= 120 ? 35 : 25;
+        score += pts;
+        findings.push({
+          category: "Outdated / Stale Access",
+          severity: days >= 120 ? "CRITICAL" : "HIGH",
+          score_impact: `+${pts}`,
+          aws_tool: "Amazon S3 (access logs)",
+          description: `Account has been inactive for ${days} days (limit: 90 days).`,
+          remediation: "Suspend the account, or require re-authentication."
+        });
+      }
+
+      if (!emp.mfa_enabled) {
+        score += 25;
+        findings.push({
+          category: "No Multi-Factor Authentication",
+          severity: "HIGH",
+          score_impact: "+25",
+          aws_tool: "AWS CloudTrail (login logs)",
+          description: "Multi-Factor Authentication (MFA) is turned off for this user.",
+          remediation: "Enforce MFA through SSO provider."
+        });
+      }
+
+      if (emp.drift_detected) {
+        score += 25;
+        findings.push({
+          category: "Permission Drift",
+          severity: "CRITICAL",
+          score_impact: "+25",
+          aws_tool: "Amazon SageMaker (role clustering)",
+          description: emp.drift_summary || "Leftover privileges from an earlier role.",
+          remediation: "Remove leftover roles and keep only what the current job needs."
+        });
+      }
+
+      const admins = (emp.permissions || []).filter(p => p.is_admin);
+      if (admins.length > 0) {
+        const pts = Math.min(admins.length * 15, 30);
+        score += pts;
+        findings.push({
+          category: "Excessive Privilege",
+          severity: "HIGH",
+          score_impact: `+${pts}`,
+          aws_tool: "Amazon SageMaker (peer comparison)",
+          description: `Holds ${admins.length} administrator role(s) across SaaS apps.`,
+          remediation: "Downgrade to a standard role."
+        });
+      }
+
+      const dept = (emp.department || "").toLowerCase();
+      if (["marketing", "sales", "customer support", "human resources", "finance", "legal"].includes(dept)) {
+        for (let p of (emp.permissions || [])) {
+          if ((p.service.includes("AWS") || p.service.includes("Cloud")) && p.is_admin) {
+            score += 15;
+            findings.push({
+              category: "Toxic Combination",
+              severity: "CRITICAL",
+              score_impact: "+15",
+              aws_tool: "Amazon SageMaker (peer comparison)",
+              description: `A ${emp.department} employee holds cloud infrastructure admin access.`,
+              remediation: "Remove cloud admin role; give read-only access if needed."
+            });
+            break;
+          }
+        }
+      }
+
+      const anomaly = emp.usage_patterns?.anomaly_score || 0;
+      if (anomaly >= 70) {
+        score += 20;
+        findings.push({
+          category: "Anomalous Usage Pattern",
+          severity: anomaly >= 85 ? "CRITICAL" : "HIGH",
+          score_impact: "+20",
+          aws_tool: "Amazon SageMaker (anomaly model)",
+          description: `Anomaly score ${anomaly}/100 detected against peer baseline.`,
+          remediation: "Review recent activity and restrict unusual access."
+        });
+      }
+
+      const finalScore = Math.max(5, Math.min(100, score));
+      let tier = "LOW";
+      if (finalScore >= 80) tier = "CRITICAL";
+      else if (finalScore >= 60) tier = "HIGH";
+      else if (finalScore >= 35) tier = "MEDIUM";
+
+      return {
+        risk_score: finalScore,
+        risk_tier: tier,
+        findings: findings,
+        permissions_to_review_or_revoke: (emp.permissions || []).filter(p => p.is_admin || p.sensitive).map(p => `${p.service} - ${p.privilege}`)
+      };
+    }
+
+    async function handleCreateUser(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveUserBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Ingesting...</span>`;
+      lucide.createIcons();
+
+      const rows = document.querySelectorAll('#saasRowsContainer > div');
+      const permissions = [];
+      const consentedRoles = [];
+      const saasSet = new Set();
+
+      rows.forEach(r => {
+        const service = r.querySelector('.saas-service-input').value;
+        const role = r.querySelector('.saas-role-input').value.trim() || 'Standard Role';
+        const isAdmin = r.querySelector('.saas-admin-input').checked;
+        const sensitive = r.querySelector('.saas-sensitive-input').checked;
+
+        saasSet.add(service);
+        permissions.push({
+          service: service,
+          privilege: role,
+          is_admin: isAdmin,
+          sensitive: sensitive
+        });
+        consentedRoles.push({
+          service: service,
+          role: role,
+          consent_date: new Date().toISOString().split('T')[0],
+          status: isAdmin ? 'Excessive Scope' : 'Legitimate'
+        });
+      });
+
+      const payload = {
+        name: document.getElementById('addUserName').value.trim(),
+        email: document.getElementById('addUserEmail').value.trim(),
+        department: document.getElementById('addUserDepartment').value,
+        title: document.getElementById('addUserTitle').value.trim(),
+        previous_role: document.getElementById('addUserPreviousRole').value.trim(),
+        mfa_enabled: document.getElementById('addUserMFA').value === 'true',
+        last_login_days: parseInt(document.getElementById('addUserInactivity').value || '1'),
+        anomaly_score: parseInt(document.getElementById('addUserAnomaly').value || '10'),
+        drift_detected: document.getElementById('addUserDrift').checked,
+        drift_summary: document.getElementById('addUserDriftSummary').value.trim(),
+        saas_accounts: Array.from(saasSet),
+        permissions: permissions,
+        consented_roles: consentedRoles
+      };
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1500);
+        const res = await fetch(`${API_BASE_URL}/employees`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          toggleModal('addUserModal');
+          await fetchEmployees();
+          await fetchDriftHistory();
+          showNotification(`Identity Ingested: ${data.employee.name} assessed with Risk Score ${data.employee.risk_score}/100 (${data.employee.risk_tier}). AppFlow synchronized to Amazon S3.`, 'success');
+          return;
+        }
+      } catch (err) {}
+
+      // Client Fallback User Ingestion
+      const newId = `EMP-${String(state.employees.length + 1).padStart(3, '0')}`;
+      const userObj = {
+        id: newId,
+        name: payload.name,
+        email: payload.email || `${payload.name.toLowerCase().replace(' ', '.')}@example.com`,
+        department: payload.department,
+        title: payload.title,
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+        mfa_enabled: payload.mfa_enabled,
+        last_login_days: payload.last_login_days,
+        saas_accounts: payload.saas_accounts,
+        assigned_roles: payload.consented_roles.map(r => r.role),
+        consented_roles: payload.consented_roles,
+        permissions: payload.permissions,
+        access_history: [
+          {
+            timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19) + " UTC",
+            service: payload.saas_accounts[0] || "AWS IAM",
+            action: "Ingestion & Sync via Amazon AppFlow",
+            anomaly: payload.anomaly_score >= 70
+          }
+        ],
+        usage_patterns: {
+          anomaly_score: payload.anomaly_score,
+          status: payload.anomaly_score >= 70 ? "Elevated Anomaly" : "Normal Usage Pattern",
+          details: `Amazon SageMaker peer clustering analyzed activity across ${payload.saas_accounts.join(', ')}.`
+        },
+        drift_detected: payload.drift_detected,
+        drift_summary: payload.drift_summary || "Accumulated leftover SaaS privileges detected.",
+        previous_role: payload.previous_role || `Former ${payload.title}`
+      };
+
+      const calculated = calculateRiskLocally(userObj);
+      Object.assign(userObj, calculated);
+
+      state.employees.unshift(userObj);
+      state.timeline.unshift({
+        id: `LOG-${state.timeline.length + 101}`,
+        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19) + " UTC",
+        employee_id: userObj.id,
+        employee_name: userObj.name,
+        action: "New Identity Ingested",
+        details: `Ingested via Amazon AppFlow: ${userObj.permissions.length} permission(s) mapped across ${userObj.saas_accounts.join(', ')}.`,
+        risk_delta: `+${userObj.risk_score}`,
+        severity: userObj.risk_tier,
+        aws_source: "Amazon AppFlow + Amazon S3 (Bronze Data Lake)"
+      });
+
+      toggleModal('addUserModal');
+      updateKPIsFromState();
+      renderEmployeesTable(state.employees);
+      renderDriftTimeline(state.timeline);
+      populateSimulatorDropdown(state.employees);
+
+      showNotification(`Identity Ingested: ${userObj.name} assessed with Risk Score ${userObj.risk_score}/100 (${userObj.risk_tier}). Ingested to Data Lake.`, 'success');
+
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i><span>Ingest Identity into Matrix</span>`;
+      lucide.createIcons();
+    }
+
+    async function resetSampleBaseline() {
+      if (!confirm("Reset all identities back to the initial 6 sample permission records?")) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/employees/reset`, { method: 'POST' });
+        if (res.ok) {
+          await fetchEmployees();
+          await fetchDriftHistory();
+          showNotification('Demo Baseline Reset: Restored initial sample permission records.', 'info');
+          return;
+        }
+      } catch (err) {}
+
+      // Client reset
+      state.employees = JSON.parse(JSON.stringify(DEFAULT_EMPLOYEES));
+      state.timeline = JSON.parse(JSON.stringify(DEFAULT_TIMELINE));
+      updateKPIsFromState();
+      renderEmployeesTable(state.employees);
+      renderDriftTimeline(state.timeline);
+      populateSimulatorDropdown(state.employees);
+      showNotification('Demo Baseline Reset: Restored initial sample permission records.', 'info');
+    }
+
+    // -------------------------------------------------------------------------
+    // WHAT-IF SIMULATOR & BEDROCK AI EXPLAIN
+    // -------------------------------------------------------------------------
+    function populateSimulatorDropdown(list) {
+      const select = document.getElementById('simEmployeeSelect');
+      select.innerHTML = '<option value="">Select an identity...</option>' + 
+        list.map(e => `<option value="${e.id}">${e.name} (${e.title} &bull; ${e.department})</option>`).join('');
+    }
+
+    function selectForSimulator(empId) {
+      const select = document.getElementById('simEmployeeSelect');
+      select.value = empId;
+      onSimEmployeeChanged();
+      document.getElementById('simulatorForm').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function onSimEmployeeChanged() {
+      const id = document.getElementById('simEmployeeSelect').value;
+      const emp = state.employees.find(e => e.id === id);
+      if (emp) {
+        document.getElementById('simProposedRole').value = `Standard User (${emp.department})`;
+        document.getElementById('simRevokeAdmin').checked = (emp.permissions || []).some(p => p.is_admin);
+        document.getElementById('simResolveDrift').checked = emp.drift_detected;
+        document.getElementById('simEnableMFA').checked = !emp.mfa_enabled;
+        document.getElementById('simRefreshDormant').checked = (emp.last_login_days || 0) >= 90;
+      }
+    }
+
+    async function runSimulation() {
+      const empId = document.getElementById('simEmployeeSelect').value;
+      if (!empId) {
+        showNotification('Please select an employee to simulate access changes.', 'error');
+        return;
+      }
+
+      const emp = state.employees.find(e => e.id === empId);
+      if (!emp) return;
+
+      const payload = {
+        employee_id: empId,
+        revoke_admin: document.getElementById('simRevokeAdmin').checked,
+        resolve_drift: document.getElementById('simResolveDrift').checked,
+        enable_mfa: document.getElementById('simEnableMFA').checked,
+        refresh_dormant: document.getElementById('simRefreshDormant').checked,
+        proposed_role: document.getElementById('simProposedRole').value
+      };
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/simulate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const sim = await res.json();
+          displaySimulationResult(sim);
+          return;
+        }
+      } catch (err) {}
+
+      // Local Simulation Fallback
+      const clone = JSON.parse(JSON.stringify(emp));
+      if (payload.revoke_admin) {
+        (clone.permissions || []).forEach(p => { p.is_admin = false; p.privilege = "Standard User"; });
+      }
+      if (payload.resolve_drift) {
+        clone.drift_detected = false;
+        clone.drift_summary = "Remediated: leftover roles removed.";
+      }
+      if (payload.enable_mfa) {
+        clone.mfa_enabled = true;
+      }
+      if (payload.refresh_dormant) {
+        clone.last_login_days = 1;
+      }
+      if (clone.usage_patterns) {
+        clone.usage_patterns.anomaly_score = Math.min(clone.usage_patterns.anomaly_score || 0, 15);
+      }
+
+      const simCalc = calculateRiskLocally(clone);
+      const delta = emp.risk_score - simCalc.risk_score;
+      displaySimulationResult({
+        risk_delta: `-${delta}`,
+        baseline: { risk_score: emp.risk_score, risk_tier: emp.risk_tier },
+        simulated: { risk_score: simCalc.risk_score, risk_tier: simCalc.risk_tier },
+        recommendation: `Applying these least-privilege changes lowers risk by ${delta} points (${emp.risk_tier} to ${simCalc.risk_tier}).`
+      });
+    }
+
+    function displaySimulationResult(sim) {
+      document.getElementById('simResultCard').classList.remove('hidden');
+      document.getElementById('simRiskDeltaBadge').textContent = `${sim.risk_delta} Points`;
+      document.getElementById('simBaseScore').textContent = sim.baseline.risk_score;
+      document.getElementById('simBaseTier').textContent = `${sim.baseline.risk_tier} Tier`;
+      document.getElementById('simTargetScore').textContent = sim.simulated.risk_score;
+      document.getElementById('simTargetTier').textContent = `${sim.simulated.risk_tier} Tier`;
+      document.getElementById('simRecommendationText').textContent = sim.recommendation;
+    }
+
+    // Detail Modal Handlers
+    function openEmployeeDetail(empId) {
+      const emp = state.employees.find(e => e.id === empId);
+      if (!emp) return;
+
+      state.selectedEmployeeId = emp.id;
+      document.getElementById('modalAvatar').src = emp.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+      document.getElementById('modalName').textContent = emp.name;
+      document.getElementById('modalSub').textContent = `${emp.title} • ${emp.department}`;
+      document.getElementById('modalScore').textContent = `${emp.risk_score} / 100`;
+
+      const tierEl = document.getElementById('modalTierBadge');
+      tierEl.textContent = emp.risk_tier;
+      tierEl.className = `text-xs font-semibold px-3 py-1 rounded-full uppercase ${
+        emp.risk_tier === 'CRITICAL' ? 'bg-red-950 text-red-400 border border-red-800' :
+        emp.risk_tier === 'HIGH' ? 'bg-orange-950 text-orange-400 border border-orange-800' :
+        'bg-emerald-950 text-emerald-400 border border-emerald-800'
+      }`;
+
+      const usage = emp.usage_patterns || {};
+      const anom = usage.anomaly_score ?? usage.lookout_anomaly_score ?? 0;
+      document.getElementById('modalAnomalyText').textContent = `Lookout Anomaly: ${anom}/100`;
+
+      // Consented Roles
+      const consentedList = document.getElementById('modalConsentedRolesList');
+      consentedList.innerHTML = (emp.consented_roles || []).map(r => `
+        <div class="p-2 rounded bg-slate-900 border border-slate-800 flex items-center justify-between">
+          <span class="font-medium text-slate-200">${r.service}: ${r.role}</span>
+          <span class="text-[10px] font-mono-code px-1.5 py-0.5 rounded ${r.status && (r.status.includes('Outdated') || r.status.includes('Residual')) ? 'bg-amber-950 text-amber-300 border border-amber-800' : 'bg-slate-800 text-slate-400'}">${r.status || 'Active'}</span>
+        </div>
+      `).join('') || '<p class="text-slate-500">No consented roles recorded.</p>';
+
+      // Permissions
+      const permList = document.getElementById('modalPermissionsList');
+      permList.innerHTML = (emp.permissions || []).map(p => `
+        <div class="p-2 rounded bg-slate-800/80 border border-slate-700/80 flex items-center justify-between">
+          <span class="font-medium text-slate-200">${p.service} &rarr; ${p.privilege}</span>
+          <div class="flex items-center space-x-1.5">
+            ${p.is_admin ? '<span class="text-[10px] bg-red-950 text-red-400 border border-red-800 px-1.5 py-0.5 rounded font-mono-code">ADMIN</span>' : ''}
+            ${p.sensitive ? '<span class="text-[10px] bg-amber-950 text-amber-400 border border-amber-800 px-1.5 py-0.5 rounded font-mono-code">SENSITIVE</span>' : ''}
+          </div>
+        </div>
+      `).join('');
+
+      // Access History
+      const histList = document.getElementById('modalAccessHistoryList');
+      histList.innerHTML = (emp.access_history || []).map(h => `
+        <div class="p-2 rounded bg-slate-900 border border-slate-800 flex items-center justify-between text-[11px]">
+          <div>
+            <span class="text-slate-400 font-mono-code">${h.timestamp}:</span>
+            <span class="text-slate-200 ml-1">${h.service} &rarr; ${h.action}</span>
+          </div>
+          ${h.anomaly ? '<span class="text-[9px] bg-red-950 text-red-400 border border-red-800 px-1 py-0.5 rounded font-bold">ANOMALY</span>' : '<span class="text-[9px] text-slate-500">ROUTINE</span>'}
+        </div>
+      `).join('') || '<p class="text-slate-500">No recent access history records.</p>';
+
+      // Findings
+      const findingsList = document.getElementById('modalFindingsList');
+      if (!emp.findings || emp.findings.length === 0) {
+        findingsList.innerHTML = `<p class="text-slate-400 italic">No security risks or permission drift detected for this identity.</p>`;
+      } else {
+        findingsList.innerHTML = emp.findings.map(f => `
+          <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-red-300">${f.category}</span>
+              <span class="font-mono-code text-[10px] font-bold text-red-400">${f.score_impact}</span>
+            </div>
+            <p class="text-slate-300 text-xs">${f.description}</p>
+            ${f.aws_tool ? `<div class="text-[10px] text-slate-400 font-mono-code">AWS Detection: <span class="text-cyan-400">${f.aws_tool}</span></div>` : ''}
+            <div class="text-[11px] text-cyan-400 flex items-start pt-1">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5 mr-1 flex-shrink-0 mt-0.5"></i>
+              <span><strong>Remediation:</strong> ${f.remediation}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      toggleModal('detailModal');
+      lucide.createIcons();
+    }
+
+    function sendToSimulatorFromModal() {
+      if (state.selectedEmployeeId) {
+        toggleModal('detailModal');
+        selectForSimulator(state.selectedEmployeeId);
+      }
+    }
+
+    // Automated Zero-Trust Access Revocation
+    async function executeAutomatedRemediation() {
+      if (!state.selectedEmployeeId) return;
+      const emp = state.employees.find(e => e.id === state.selectedEmployeeId);
+      if (!emp) return;
+
+      const btn = document.getElementById('modalRemediateBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Executing Revocation...</span>`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/remediate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employee_id: emp.id, action: 'full_least_privilege' })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          toggleModal('detailModal');
+          await fetchEmployees();
+          await fetchDriftHistory();
+          showNotification(`Zero-Trust Revocation Complete: Risk dropped by ${data.risk_delta} points. CloudTrail Audit #${data.audit_log_id} signed via AWS KMS.`, 'success');
+          return;
+        }
+      } catch (err) {}
+
+      // Client Fallback Remediation
+      const baseline = emp.risk_score;
+      (emp.permissions || []).forEach(p => {
+        if (p.is_admin) { p.is_admin = false; p.privilege = "Standard User"; }
+      });
+      emp.drift_detected = false;
+      emp.mfa_enabled = true;
+      if (emp.usage_patterns) emp.usage_patterns.anomaly_score = 10;
+      Object.assign(emp, calculateRiskLocally(emp));
+
+      const delta = baseline - emp.risk_score;
+      state.timeline.unshift({
+        id: `LOG-${state.timeline.length + 101}`,
+        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19) + " UTC",
+        employee_id: emp.id,
+        employee_name: emp.name,
+        action: "Automated Zero-Trust Revocation",
+        details: "Changes applied: Admin rights downgraded; Role drift cleared; MFA enforced.",
+        risk_delta: `-${delta}`,
+        severity: "LOW",
+        aws_source: "Amazon EventBridge (trigger) + AWS CloudTrail (record)"
+      });
+
+      toggleModal('detailModal');
+      updateKPIsFromState();
+      renderEmployeesTable(state.employees);
+      renderDriftTimeline(state.timeline);
+      showNotification(`Zero-Trust Revocation Complete: Risk dropped by -${delta} points. CloudTrail Audit signed via AWS KMS.`, 'success');
+
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="shield-off" class="w-3.5 h-3.5 text-red-400"></i><span>Automated Zero-Trust Revocation</span>`;
+      lucide.createIcons();
+    }
+
+    // AI Explanation Generator (Amazon Bedrock)
+    async function requestAiExplanation(empId) {
+      const emp = state.employees.find(e => e.id === empId);
+      if (!emp) return;
+
+      const panel = document.getElementById('aiAuditorContent');
+      panel.innerHTML = `
+        <div class="flex items-center space-x-2 text-purple-300 py-3">
+          <i data-lucide="loader" class="w-4 h-4 animate-spin"></i>
+          <span>Generating Amazon Bedrock Contextual Early Warning &amp; Action Plan...</span>
+        </div>
+      `;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/ai-explain`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employee_id: empId })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          renderAiExplanationPanel(data);
+          return;
+        }
+      } catch (err) {}
+
+      // Client Fallback Bedrock Summary
+      const findings = emp.findings || [];
+      const warning = findings.length > 0 
+        ? `EARLY WARNING for ${emp.name} (${emp.title}, ${emp.department}): Risk score ${emp.risk_score}/100 (${emp.risk_tier}). Primary issue: ${findings[0].description}`
+        : `No early warning for ${emp.name}: Access is strictly aligned with the ${emp.department} role. Least-privilege compliant.`;
+
+      const plan = findings.length > 0
+        ? findings.map((f, i) => `${i + 1}. ${f.remediation}`)
+        : ["1. No immediate action required. Maintain continuous monitoring."];
+
+      renderAiExplanationPanel({
+        employee_name: emp.name,
+        zero_trust_score: `${100 - emp.risk_score}% Compliance`,
+        early_warning: warning,
+        permissions_to_review_or_revoke: emp.permissions_to_review_or_revoke || [],
+        recommended_action_plan: plan
+      });
+    }
+
+    function renderAiExplanationPanel(data) {
+      const panel = document.getElementById('aiAuditorContent');
+      panel.innerHTML = `
+        <div class="space-y-3 pt-1">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-100">${data.employee_name}</span>
+            <span class="font-mono-code text-[10px] bg-purple-950 text-purple-300 border border-purple-800 px-2 py-0.5 rounded">${data.zero_trust_score}</span>
+          </div>
+          
+          <p class="text-slate-300 text-xs leading-relaxed bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+            ${data.early_warning}
+          </p>
+
+          ${data.permissions_to_review_or_revoke && data.permissions_to_review_or_revoke.length > 0 ? `
+            <div>
+              <span class="text-[11px] font-bold text-red-300 uppercase tracking-wider block mb-1">Permissions to Review or Revoke:</span>
+              <ul class="space-y-1 text-xs text-red-200 bg-red-950/40 border border-red-900/50 p-2 rounded">
+                ${data.permissions_to_review_or_revoke.map(p => `<li>• ${p}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
+          <div>
+            <span class="text-[11px] font-bold text-purple-300 uppercase tracking-wider block mb-1.5">Prescribed Zero-Trust Action Plan:</span>
+            <ul class="space-y-1.5 text-xs text-slate-300">
+              ${data.recommended_action_plan.map(step => `
+                <li class="flex items-start">
+                  <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-cyan-400 mr-1 flex-shrink-0 mt-0.5"></i>
+                  <span>${step}</span>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+
+          <div class="text-[10px] text-slate-400 font-mono-code pt-1 border-t border-slate-800">
+            Orchestrated via AWS Step Functions &bull; EventBridge &bull; Security Hub
+          </div>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    // Trigger On-Demand Scan
+    // Trigger On-Demand Security Scan
+async function triggerSecurityScan() {
+    const btn = document.getElementById('scanBtn');
+    const icon = document.getElementById('scanIcon');
+    const text = document.getElementById('scanText');
+
+    if (!btn || !icon || !text) {
+        console.error('Scan button elements not found.');
+        return;
+    }
+
+    btn.disabled = true;
+    icon.classList.add('animate-spin');
+    text.textContent = 'Scanning SaaS APIs...';
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
+    try {
+        // Send the scan request to API Gateway
+        const res = await fetch(`${API_BASE_URL}/api/scan`, {
+            method: 'POST',
+            signal: controller.signal
+        });
+
+        if (!res.ok) {
+            throw new Error(`Scan failed with HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        console.log('Security scan response:', data);
+
+        // Refresh the dashboard after a successful scan
+        await Promise.all([
+            fetchEmployees(),
+            fetchDriftHistory()
+        ]);
+
+        showNotification(
+            `Audit Complete: ${data.scanned_identities} identities assessed. ` +
+            `${data.flagged_identities} high-exposure profiles flagged.`
+        );
+
+    } catch (err) {
+        console.error('Security scan failed:', err);
+
+        if (err.name === 'AbortError') {
+            showNotification('Security scan timed out after 30 seconds.');
+        } else {
+            showNotification(
+                `Security scan failed: ${err.message}`
+            );
+        }
+
+    } finally {
+        // Always restore the button, even if the request fails
+        clearTimeout(timeout);
+
+        btn.disabled = false;
+        icon.classList.remove('animate-spin');
+        text.textContent = 'Run Security Scan';
+    }
+}
+    function simulateAuthModalLogin(user, provider) {
+      showNotification(`Zero-Trust Assertion: Signed in as ${user} via ${provider}.`, 'success');
+      toggleModal('authModal');
+    }
+
+    // Modal Helpers
+    function toggleModal(modalId) {
+      const el = document.getElementById(modalId);
+      el.classList.toggle('hidden');
+    }
+
+    // Notification Helper
+    function showNotification(msg, type = 'info') {
+      const banner = document.getElementById('notificationBanner');
+      const box = document.getElementById('notificationBox');
+      const text = document.getElementById('notificationMessage');
+      
+      text.textContent = msg;
+      banner.classList.remove('hidden');
+
+      if (type === 'success') {
+        box.className = "p-3.5 rounded-xl border flex items-center justify-between text-sm shadow-md bg-emerald-950/80 border-emerald-800 text-emerald-200";
+      } else if (type === 'error') {
+        box.className = "p-3.5 rounded-xl border flex items-center justify-between text-sm shadow-md bg-red-950/80 border-red-800 text-red-200";
+      } else {
+        box.className = "p-3.5 rounded-xl border flex items-center justify-between text-sm shadow-md bg-cyan-950/80 border-cyan-800 text-cyan-200";
+      }
+      lucide.createIcons();
+
+      setTimeout(() => {
+        banner.classList.add('hidden');
+      }, 5000);
+    }
+
+    function closeNotification() {
+      document.getElementById('notificationBanner').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AccessGuard AI — Zero-Trust Authentication Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b0f19;
+      color: #e2e8f0;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .cyber-card {
+      background: linear-gradient(135deg, rgba(26, 34, 52, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+      backdrop-filter: blur(12px);
+    }
+    .cyber-card:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+    .tab-active {
+      border-color: #38bdf8;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden">
+  
+  <!-- Ambient Glows -->
+  <div class="absolute top-1/4 -left-20 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="max-w-md w-full space-y-6 relative z-10">
+    
+    <!-- Brand Logo -->
+    <div class="text-center space-y-2">
+      <div class="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-xl shadow-cyan-500/25 border border-cyan-400/30">
+        <i data-lucide="shield-alert" class="w-8 h-8 text-white"></i>
+      </div>
+      <div class="flex items-center justify-center space-x-2 pt-2">
+        <h1 class="text-2xl font-extrabold tracking-tight text-white">AccessGuard <span class="text-cyan-400">AI</span></h1>
+        <span class="text-[10px] font-semibold uppercase tracking-wider bg-cyan-950 text-cyan-400 border border-cyan-800/60 px-2 py-0.5 rounded-full">
+          Zero-Trust Portal
+        </span>
+      </div>
+      <p class="text-xs text-slate-400 max-w-sm mx-auto">
+        Multi-SaaS Permission Drift Detection &amp; Explainable Risk Governance
+      </p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="cyber-card rounded-2xl p-6 shadow-2xl border-slate-700/80 space-y-5">
+      
+      <!-- Direct Entry Button -->
+      <a href="index.html" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-xs font-bold flex items-center justify-center space-x-2 transition shadow-lg shadow-emerald-600/25">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+        <span>Enter Dashboard Directly</span>
+      </a>
+
+      <div class="flex items-center my-1">
+        <div class="flex-grow border-t border-slate-800"></div>
+        <span class="px-3 text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Or Authenticate with SSO</span>
+        <div class="flex-grow border-t border-slate-800"></div>
+      </div>
+
+      <!-- Auth Method Selector Tabs -->
+      <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-900/90 rounded-xl border border-slate-800 text-xs font-semibold">
+        <button id="tabBtnSSO" onclick="switchAuthTab('sso')" class="py-2 px-3 rounded-lg text-center transition tab-active">
+          Enterprise SSO
+        </button>
+        <button id="tabBtnDirect" onclick="switchAuthTab('direct')" class="py-2 px-3 rounded-lg text-slate-400 hover:text-white text-center transition">
+          SecOps Direct
+        </button>
+      </div>
+
+      <!-- TAB 1: Enterprise SSO -->
+      <div id="tabContentSSO" class="space-y-3">
+        <p class="text-xs text-slate-400 leading-relaxed text-center">
+          Sign in via your centralized Single Sign-On IdP to access continuous SaaS governance telemetry.
+        </p>
+
+        <button onclick="completeLogin('Alex Vance (SSO)', 'AWS IAM Identity Center (SSO)', 'SecOps Lead')" class="w-full py-2.5 px-4 rounded-xl border border-amber-600/40 bg-gradient-to-r from-amber-950/60 to-slate-900 hover:from-amber-900/60 hover:to-slate-800 text-amber-200 text-xs font-semibold flex items-center justify-center space-x-2.5 transition shadow-lg shadow-amber-950/20 group">
+          <i data-lucide="cloud" class="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform"></i>
+          <span>Sign In with AWS IAM Identity Center</span>
+        </button>
+
+        <button onclick="completeLogin('Alex Vance (Okta)', 'Okta Enterprise IdP', 'SecOps Lead')" class="w-full py-2.5 px-4 rounded-xl border border-blue-600/40 bg-gradient-to-r from-blue-950/60 to-slate-900 hover:from-blue-900/60 hover:to-slate-800 text-blue-200 text-xs font-semibold flex items-center justify-center space-x-2.5 transition shadow-lg shadow-blue-950/20 group">
+          <i data-lucide="key-round" class="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform"></i>
+          <span>Sign In with Okta Enterprise IdP</span>
+        </button>
+      </div>
+
+      <!-- TAB 2: Direct SecOps Credentials -->
+      <form id="directLoginForm" onsubmit="handleDirectLogin(event)" class="hidden space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Corporate Identity / Email</label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-3 top-3"></i>
+            <input 
+              type="email" 
+              id="loginEmail" 
+              value="admin@accessguard.ai" 
+              required 
+              class="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 focus:outline-none focus:border-cyan-400 transition"
+            >
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Security Credential / Password</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3 top-3"></i>
+            <input 
+              type="password" 
+              id="loginPassword" 
+              value="CyberGuard2026!" 
+              required 
+              class="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 focus:outline-none focus:border-cyan-400 transition"
+            >
+          </div>
+        </div>
+
+        <!-- MFA Badge -->
+        <div class="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-800/40 flex items-center justify-between text-[11px]">
+          <div class="flex items-center space-x-2 text-emerald-300 font-medium">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+            <span>Hardware MFA Token Verified</span>
+          </div>
+          <span class="font-mono-code text-[10px] text-emerald-400">TOTP-842109</span>
+        </div>
+
+        <button type="submit" class="w-full py-2.5 px-4 text-xs font-semibold rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white flex items-center justify-center space-x-2 transition shadow-lg shadow-cyan-500/20">
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          <span>Authenticate via Zero-Trust Gateway</span>
+        </button>
+      </form>
+
+      <!-- Instant 1-Click Demo Logins -->
+      <div class="pt-3 border-t border-slate-800/80 space-y-2">
+        <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold block text-center">
+          Instant Demo Quick-Login (Evaluation Mode)
+        </span>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="completeLogin('Alex Vance', 'AWS IAM Identity Center (SSO)', 'SecOps Lead')" class="py-2 px-2.5 rounded-lg bg-slate-900 border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800/80 text-[11px] text-cyan-300 font-semibold flex items-center justify-center space-x-1.5 transition">
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span>SecOps Admin</span>
+          </button>
+          <button type="button" onclick="completeLogin('Diana Ross', 'Okta Enterprise IdP', 'Lead Compliance Auditor')" class="py-2 px-2.5 rounded-lg bg-slate-900 border border-slate-700 hover:border-purple-500/50 hover:bg-slate-800/80 text-[11px] text-purple-300 font-semibold flex items-center justify-center space-x-1.5 transition">
+            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-purple-400"></i>
+            <span>SOC Auditor</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Trust & Compliance Badges -->
+    <div class="text-center text-[11px] text-slate-500 space-y-1">
+      <div class="flex items-center justify-center space-x-2 text-slate-400">
+        <span>AWS IAM Identity Center</span>
+        <span>&bull;</span>
+        <span>Amazon Bedrock</span>
+        <span>&bull;</span>
+        <span>AWS CloudTrail</span>
+      </div>
+      <p>Tamper-Proof Audit Logging &bull; Least-Privilege Enforcement</p>
+    </div>
+
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+
+    function switchAuthTab(tab) {
+      const ssoBtn = document.getElementById('tabBtnSSO');
+      const directBtn = document.getElementById('tabBtnDirect');
+      const ssoContent = document.getElementById('tabContentSSO');
+      const directContent = document.getElementById('directLoginForm');
+
+      if (tab === 'sso') {
+        ssoBtn.className = "py-2 px-3 rounded-lg text-center transition tab-active";
+        directBtn.className = "py-2 px-3 rounded-lg text-slate-400 hover:text-white text-center transition";
+        ssoContent.classList.remove('hidden');
+        directContent.classList.add('hidden');
+      } else {
+        directBtn.className = "py-2 px-3 rounded-lg text-center transition tab-active";
+        ssoBtn.className = "py-2 px-3 rounded-lg text-slate-400 hover:text-white text-center transition";
+        directContent.classList.remove('hidden');
+        ssoContent.classList.add('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    function completeLogin(name, provider, role) {
+      const user = {
+        id: "USR-ADMIN-01",
+        name: name,
+        email: "admin@accessguard.ai",
+        role: role || "SecOps Lead",
+        department: "Cybersecurity & IAM Governance",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+        mfa_enforced: true,
+        sso_provider: provider
+      };
+      localStorage.setItem('ag_user', JSON.stringify(user));
+      localStorage.setItem('ag_token', 'demo-session-token');
+      window.location.href = 'index.html';
+    }
+
+    function handleDirectLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const name = email.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'SecOps Admin';
+      completeLogin(name, 'AccessGuard Zero-Trust Portal', 'Principal SecOps Engineer');
+    }
+  </script>
+</body>
+</html>
